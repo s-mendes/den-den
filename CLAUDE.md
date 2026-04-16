@@ -29,11 +29,13 @@ Stack: Node.js + TypeScript, discord.js v14, Prisma + PostgreSQL (Docker local n
    npm test                # suíte completa (Vitest)
    ```
 
-4. **Commit convencional** (`feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, `test:`, `perf:`):
+4. **Commit convencional** via `npm run commit` (cz-git guiado em PT-BR) ou manual:
    ```bash
-   git commit -m "feat: descrição curta em imperativo"
+   npm run commit                                # prompt interativo
+   git commit -m "feat: descrição em imperativo" # manual
    ```
-   Commits pequenos, escopo único.
+   Tipos aceitos: `feat`, `fix`, `refactor`, `perf`, `chore`, `docs`, `test`, `style`, `ci`, `build`, `revert`.
+   Commits pequenos, escopo único. O hook `commit-msg` valida via `commitlint`; o `pre-commit` roda `typecheck + lint + test` automaticamente.
 
 5. **Push e PR** contra `main`. Merge apenas após revisão aprovada.
 
@@ -84,10 +86,14 @@ Para iniciar uma próxima issue sem herdar contexto da anterior:
 - **Prettier** — `npm run format` / `npm run format:check`
 - **Vitest** — `npm test` / `npm run test:watch` / `npm run test:ui`
 - **Zod** — toda entrada externa (resposta de LLM, payload de serviço) passa por schema Zod em `src/ai/schemas.ts`. Os `services` expõem tipos de input derivados desses schemas via `z.infer`.
+- **commitlint** com `@commitlint/config-conventional` — valida mensagens via hook `commit-msg`
+- **cz-git** — prompt interativo em PT-BR via `npm run commit` (`commitlint.config.mjs` define types e scopes)
+- **husky 9** — instala hooks via `npm install` (script `prepare`):
+  - `pre-commit`: roda `typecheck + lint + test` (bloqueia commit em red)
+  - `commit-msg`: roda `commitlint` (bloqueia mensagem fora do padrão)
 
 ### Dívidas de tooling ainda abertas
 
-- [ ] **commitlint + cz-git** — convenção de commits é manual por enquanto
 - [ ] **Proteção de `main`** no GitHub — exigir PR e status checks
 - [ ] **CI (GitHub Actions)** — rodar typecheck + lint + test a cada PR
 
