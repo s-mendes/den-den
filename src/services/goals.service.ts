@@ -32,7 +32,7 @@ export const goalsService = {
 
   async findByTitle(title: string) {
     return prisma.goal.findFirst({
-      where: { title: { contains: title } },
+      where: { title: { contains: title, mode: 'insensitive' } },
     })
   },
 

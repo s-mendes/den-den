@@ -8,80 +8,37 @@ import { contextService } from '../services/context.service'
 export async function applyIntent(intent: Intent, discordUserId: string): Promise<void> {
   switch (intent.type) {
     case 'create_event':
-      if (intent.data.title && intent.data.datetime) {
-        await eventsService.create({
-          title: intent.data.title,
-          description: intent.data.description,
-          datetime: intent.data.datetime,
-          location: intent.data.location,
-          contactPerson: intent.data.contactPerson,
-          isAllDay: intent.data.isAllDay,
-        })
-      }
-      break
+      await eventsService.create(intent.data)
+      return
 
     case 'create_goal':
-      if (intent.data.title) {
-        await goalsService.create({
-          title: intent.data.title,
-          description: intent.data.description,
-          targetValue: intent.data.targetValue,
-          unit: intent.data.unit,
-          deadline: intent.data.deadline,
-          category: intent.data.category,
-        })
-      }
-      break
+      await goalsService.create(intent.data)
+      return
 
-    case 'log_progress':
-      if (intent.data.goalTitle && typeof intent.data.value === 'number') {
-        const goal = await goalsService.findByTitle(intent.data.goalTitle)
-        if (goal) {
-          await goalsService.logProgress(goal.id, intent.data.value, intent.data.note)
-        }
-      }
-      break
+    case 'log_progress': {
+      const goal = await goalsService.findByTitle(intent.data.goalTitle)
+      if (goal) await goalsService.logProgress(goal.id, intent.data.value, intent.data.note)
+      return
+    }
 
     case 'create_project':
-      if (intent.data.name) {
-        await projectsService.create({
-          name: intent.data.name,
-          description: intent.data.description,
-          category: intent.data.category,
-          githubRepo: intent.data.githubRepo,
-          priority: intent.data.priority,
-        })
-      }
-      break
+      await projectsService.create(intent.data)
+      return
 
     case 'update_profile':
-      await profileService.update(discordUserId, {
-        name: intent.data.name,
-        currentEmployer: intent.data.currentEmployer,
-        currentRole: intent.data.currentRole,
-        longTermGoals: intent.data.longTermGoals,
-      })
-      break
+      await profileService.update(discordUserId, intent.data)
+      return
 
     case 'set_context':
-      if (intent.data.description && intent.data.startDate) {
-        await contextService.create({
-          description: intent.data.description,
-          startDate: intent.data.startDate,
-          endDate: intent.data.endDate,
-          impact: intent.data.impact,
-        })
-      }
-      break
+      await contextService.create(intent.data)
+      return
 
     case 'delay_tasks':
-      if (typeof intent.data.days === 'number') {
-        await eventsService.delayAll(intent.data.days)
-      }
-      break
+      await eventsService.delayAll(intent.data.days)
+      return
 
     case 'query':
     case 'chitchat':
-      break
+      return
   }
 }

@@ -38,6 +38,6 @@ export const projectsService = {
   },
 
   async findByName(name: string) {
-    return prisma.project.findFirst({ where: { name: { contains: name } } })
+    return prisma.project.findFirst({ where: { name: { contains: name, mode: 'insensitive' } } })
   },
 }

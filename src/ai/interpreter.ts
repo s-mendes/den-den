@@ -1,22 +1,8 @@
 import { AIProvider } from './provider'
 import { INTERPRETER_SYSTEM_PROMPT } from './prompts'
+import { Intent, parseIntent } from './schemas'
 
-export type IntentType =
-  | 'create_event'
-  | 'create_goal'
-  | 'log_progress'
-  | 'update_profile'
-  | 'set_context'
-  | 'create_project'
-  | 'query'
-  | 'delay_tasks'
-  | 'chitchat'
-
-export interface Intent {
-  type: IntentType
-  data: Record<string, any>
-  response: string
-}
+export type { Intent, IntentType } from './schemas'
 
 export interface UserContext {
   discordUserId: string
@@ -26,7 +12,12 @@ export interface UserContext {
     currentRole?: string | null
     longTermGoals?: string[]
   }
-  activeGoals?: Array<{ title: string; currentValue: number; targetValue?: number | null; unit?: string | null }>
+  activeGoals?: Array<{
+    title: string
+    currentValue: number
+    targetValue?: number | null
+    unit?: string | null
+  }>
   activeProjects?: Array<{ name: string; githubRepo?: string | null }>
   activeContext?: Array<{ description: string; endDate?: Date | null }>
   upcomingEvents?: Array<{ title: string; datetime: Date }>
@@ -47,20 +38,18 @@ export class Interpreter {
       { jsonMode: true, temperature: 0.4 }
     )
 
-    try {
-      const parsed = JSON.parse(response.text) as Intent
-      if (!parsed.type || !parsed.response) {
-        throw new Error('JSON sem campos obrigatórios')
-      }
-      parsed.data = parsed.data ?? {}
-      return parsed
-    } catch (err) {
-      return {
-        type: 'chitchat',
-        data: { rawResponse: response.text, error: String(err) },
-        response:
-          'Hmm, não consegui entender direito. Pode reformular? Me conta o que você quer fazer.',
-      }
+    const result = parseIntent(response.text)
+    if (result.ok) return result.intent
+
+    console.warn(
+      `[interpreter] resposta do LLM rejeitada (${result.reason}): ${result.detail}\nraw: ${response.text}`
+    )
+
+    return {
+      type: 'chitchat',
+      data: {},
+      response:
+        'Hmm, não consegui entender direito. Pode reformular? Me conta o que você quer fazer.',
     }
   }
 
@@ -76,7 +65,8 @@ export class Interpreter {
       if (p.name) lines.push(`Nome: ${p.name}`)
       if (p.currentEmployer) lines.push(`Empresa atual: ${p.currentEmployer}`)
       if (p.currentRole) lines.push(`Cargo: ${p.currentRole}`)
-      if (p.longTermGoals?.length) lines.push(`Sonhos de longo prazo: ${p.longTermGoals.join('; ')}`)
+      if (p.longTermGoals?.length)
+        lines.push(`Sonhos de longo prazo: ${p.longTermGoals.join('; ')}`)
     }
 
     if (ctx.activeGoals?.length) {

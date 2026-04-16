@@ -19,7 +19,9 @@ export function registerMessageCreate(client: Client, interpreter: Interpreter) 
     if (!content.trim()) return
 
     try {
-      await message.channel.sendTyping()
+      if ('sendTyping' in message.channel) {
+        await message.channel.sendTyping()
+      }
       const context = await buildUserContext(message.author.id)
       const intent = await interpreter.interpret(content, context)
       await applyIntent(intent, message.author.id)

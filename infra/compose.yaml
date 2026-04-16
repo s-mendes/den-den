@@ -1,0 +1,22 @@
+services:
+  database:
+    container_name: "den-den-postgres"
+    image: "postgres:16.0-alpine3.18"
+    env_file:
+      - ../.env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-den_den}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-den_den_local}
+      POSTGRES_DB: ${POSTGRES_DB:-den_den}
+    ports:
+      - "5433:5432"
+    volumes:
+      - den-den-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-den_den}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  den-den-postgres-data:

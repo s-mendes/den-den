@@ -6,7 +6,7 @@ import {
   Routes,
   Collection,
   ChatInputCommandInteraction,
-  SlashCommandBuilder,
+  RESTPostAPIChatInputApplicationCommandsJSONBody,
 } from 'discord.js'
 import { Interpreter } from '../ai/interpreter'
 import { Planner } from '../ai/planner'
@@ -17,8 +17,13 @@ import * as planCmd from './commands/plan'
 import * as statusCmd from './commands/status'
 import * as delayCmd from './commands/delay'
 
+interface CommandData {
+  name: string
+  toJSON: () => RESTPostAPIChatInputApplicationCommandsJSONBody
+}
+
 type CommandModule = {
-  data: SlashCommandBuilder | Omit<SlashCommandBuilder, any>
+  data: CommandData
   execute: (interaction: ChatInputCommandInteraction) => Promise<void>
 }
 
@@ -61,7 +66,7 @@ export class DenDenBot {
       { data: statusCmd.data, execute: statusCmd.execute },
       { data: delayCmd.data, execute: delayCmd.execute },
     ]
-    for (const m of modules) this.commands.set((m.data as any).name, m)
+    for (const m of modules) this.commands.set(m.data.name, m)
   }
 
   private registerHandlers() {
@@ -98,9 +103,7 @@ export class DenDenBot {
 
   async registerSlashCommandsWithDiscord() {
     const rest = new REST({ version: '10' }).setToken(this.token)
-    const commandsJSON = Array.from(this.commands.values()).map((c) =>
-      (c.data as SlashCommandBuilder).toJSON()
-    )
+    const commandsJSON = Array.from(this.commands.values()).map((c) => c.data.toJSON())
     const route = this.guildId
       ? Routes.applicationGuildCommands(this.clientId, this.guildId)
       : Routes.applicationCommands(this.clientId)

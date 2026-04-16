@@ -41,6 +41,8 @@ Para trocar: preencha a API key do provedor escolhido no `.env`, defina `AI_PROV
 
 ## Setup local
 
+Pré-requisitos: Node.js 20+, Docker, Docker Compose.
+
 ```bash
 # 1. Dependências
 npm install
@@ -49,18 +51,37 @@ npm install
 cp .env.example .env
 # preencha DISCORD_TOKEN, DISCORD_CLIENT_ID, DISCORD_USER_ID e a API key do provedor de IA
 
-# 3. Banco de dados
-npx prisma migrate dev --name init
+# 3. Subir Postgres (Docker), esperar ficar pronto e rodar migrations
+npm run dev:setup
 
-# 4. Rodar em dev
+# 4. Rodar o bot em dev
 npm run dev
 ```
+
+### Infra local
+
+O Postgres roda em container Docker via `infra/compose.yaml`, exposto na **porta 5433** (pra não colidir com um Postgres local ou outro projeto na 5432).
+
+| Script | O que faz |
+|---|---|
+| `npm run services:up` | Sobe o container `den-den-postgres` em background |
+| `npm run services:wait` | Aguarda o Postgres aceitar conexões (usa `pg_isready`) |
+| `npm run services:stop` | Para o container sem remover |
+| `npm run services:down` | Para e remove o container (volume é preservado) |
+| `npm run dev:setup` | Atalho: up + wait + migrate |
+| `npm run db:migrate` | Cria/aplica migrations do Prisma |
+| `npm run db:studio` | Abre o Prisma Studio pra inspecionar o banco |
 
 ---
 
 ## Deploy na VPS (Ubuntu 24 + PM2)
 
+Na VPS você pode reaproveitar o mesmo `infra/compose.yaml` — só ajuste a porta no `.env` se quiser expor na 5432, ou mantenha só dentro da rede Docker.
+
 ```bash
+# Postgres
+docker compose -f infra/compose.yaml up -d
+
 # Build
 npm run build
 
@@ -103,19 +124,26 @@ Além dos comandos, você pode simplesmente mandar mensagens em DM ou mencionar 
 ## Arquitetura
 
 ```
-src/
-├── ai/
-│   ├── provider.ts            # interface comum AIProvider
-│   ├── factory.ts             # cria o provider pelo .env
-│   ├── providers/             # gemini, anthropic, openai
-│   ├── interpreter.ts         # classifica intenção da mensagem
-│   ├── planner.ts             # gera briefings e planos
-│   └── prompts.ts             # system prompts
-├── bot/                       # Discord (commands, events, intent-handler)
-├── github/                    # wrapper Octokit
-├── scheduler/                 # 4 cron jobs de notificação
-├── services/                  # camada de dados sobre o Prisma
-└── index.ts                   # entry point — monta e injeta tudo
+den-den/
+├── infra/
+│   ├── compose.yaml           # Postgres em Docker (porta 5433)
+│   └── scripts/
+│       └── wait-for-postgres.ts
+├── prisma/
+│   └── schema.prisma          # PostgreSQL
+└── src/
+    ├── ai/
+    │   ├── provider.ts        # interface comum AIProvider
+    │   ├── factory.ts         # cria o provider pelo .env
+    │   ├── providers/         # gemini, anthropic, openai
+    │   ├── interpreter.ts     # classifica intenção da mensagem
+    │   ├── planner.ts         # gera briefings e planos
+    │   └── prompts.ts         # system prompts
+    ├── bot/                   # Discord (commands, events, intent-handler)
+    ├── github/                # wrapper Octokit
+    ├── scheduler/             # 4 cron jobs de notificação
+    ├── services/              # camada de dados sobre o Prisma
+    └── index.ts               # entry point — monta e injeta tudo
 ```
 
 O `interpreter` e o `planner` recebem o `AIProvider` por injeção — eles não sabem qual provedor estão usando. Trocar de cérebro é só trocar a env var.
@@ -126,7 +154,7 @@ O `interpreter` e o `planner` recebem o `AIProvider` por injeção — eles não
 
 - Node.js + TypeScript
 - discord.js v14
-- Prisma ORM + SQLite
+- Prisma ORM + PostgreSQL 16 (Docker local na 5433)
 - node-cron (jobs proativos)
 - Octokit REST (GitHub)
 - Gemini / Anthropic / OpenAI SDKs
