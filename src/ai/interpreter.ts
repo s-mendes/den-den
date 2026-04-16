@@ -1,0 +1,115 @@
+import { AIProvider } from './provider'
+import { INTERPRETER_SYSTEM_PROMPT } from './prompts'
+
+export type IntentType =
+  | 'create_event'
+  | 'create_goal'
+  | 'log_progress'
+  | 'update_profile'
+  | 'set_context'
+  | 'create_project'
+  | 'query'
+  | 'delay_tasks'
+  | 'chitchat'
+
+export interface Intent {
+  type: IntentType
+  data: Record<string, any>
+  response: string
+}
+
+export interface UserContext {
+  discordUserId: string
+  profile?: {
+    name?: string | null
+    currentEmployer?: string | null
+    currentRole?: string | null
+    longTermGoals?: string[]
+  }
+  activeGoals?: Array<{ title: string; currentValue: number; targetValue?: number | null; unit?: string | null }>
+  activeProjects?: Array<{ name: string; githubRepo?: string | null }>
+  activeContext?: Array<{ description: string; endDate?: Date | null }>
+  upcomingEvents?: Array<{ title: string; datetime: Date }>
+}
+
+export class Interpreter {
+  constructor(private ai: AIProvider) {}
+
+  async interpret(message: string, context: UserContext): Promise<Intent> {
+    const contextBlock = this.buildContextBlock(context)
+
+    const response = await this.ai.chat(
+      [
+        { role: 'system', content: INTERPRETER_SYSTEM_PROMPT },
+        { role: 'system', content: contextBlock },
+        { role: 'user', content: message },
+      ],
+      { jsonMode: true, temperature: 0.4 }
+    )
+
+    try {
+      const parsed = JSON.parse(response.text) as Intent
+      if (!parsed.type || !parsed.response) {
+        throw new Error('JSON sem campos obrigatórios')
+      }
+      parsed.data = parsed.data ?? {}
+      return parsed
+    } catch (err) {
+      return {
+        type: 'chitchat',
+        data: { rawResponse: response.text, error: String(err) },
+        response:
+          'Hmm, não consegui entender direito. Pode reformular? Me conta o que você quer fazer.',
+      }
+    }
+  }
+
+  private buildContextBlock(ctx: UserContext): string {
+    const now = new Date()
+    const lines: string[] = [
+      `CONTEXTO DO USUÁRIO (data/hora atual: ${now.toISOString()}, fuso local: ${Intl.DateTimeFormat().resolvedOptions().timeZone})`,
+    ]
+
+    if (ctx.profile) {
+      const p = ctx.profile
+      lines.push('\n-- PERFIL --')
+      if (p.name) lines.push(`Nome: ${p.name}`)
+      if (p.currentEmployer) lines.push(`Empresa atual: ${p.currentEmployer}`)
+      if (p.currentRole) lines.push(`Cargo: ${p.currentRole}`)
+      if (p.longTermGoals?.length) lines.push(`Sonhos de longo prazo: ${p.longTermGoals.join('; ')}`)
+    }
+
+    if (ctx.activeGoals?.length) {
+      lines.push('\n-- METAS ATIVAS --')
+      for (const g of ctx.activeGoals) {
+        const target = g.targetValue ? ` / ${g.targetValue}` : ''
+        const unit = g.unit ? ` ${g.unit}` : ''
+        lines.push(`- ${g.title}: ${g.currentValue}${target}${unit}`)
+      }
+    }
+
+    if (ctx.activeProjects?.length) {
+      lines.push('\n-- PROJETOS ATIVOS --')
+      for (const p of ctx.activeProjects) {
+        lines.push(`- ${p.name}${p.githubRepo ? ` (${p.githubRepo})` : ''}`)
+      }
+    }
+
+    if (ctx.activeContext?.length) {
+      lines.push('\n-- CONTEXTO TEMPORÁRIO ATIVO --')
+      for (const c of ctx.activeContext) {
+        const until = c.endDate ? ` (até ${c.endDate.toISOString().slice(0, 10)})` : ''
+        lines.push(`- ${c.description}${until}`)
+      }
+    }
+
+    if (ctx.upcomingEvents?.length) {
+      lines.push('\n-- PRÓXIMOS EVENTOS --')
+      for (const e of ctx.upcomingEvents) {
+        lines.push(`- ${e.datetime.toISOString()}: ${e.title}`)
+      }
+    }
+
+    return lines.join('\n')
+  }
+}

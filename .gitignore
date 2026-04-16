@@ -1,0 +1,26 @@
+node_modules/
+dist/
+.env
+.env.local
+
+# Prisma / SQLite
+prisma/*.db
+prisma/*.db-journal
+prisma/migrations/dev.db*
+den-den.db
+den-den.db-journal
+
+# Logs
+*.log
+npm-debug.log*
+pm2.log
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+
+# Runtime
+*.pid
+*.seed
+*.pid.lock

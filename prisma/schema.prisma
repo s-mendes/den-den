@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id              Int      @id @default(autoincrement())
+  discordUserId   String   @unique
+  name            String?
+  currentEmployer String?
+  currentRole     String?
+  longTermGoals   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Event {
+  id             Int       @id @default(autoincrement())
+  title          String
+  description    String?
+  datetime       DateTime
+  location       String?
+  contactPerson  String?
+  isAllDay       Boolean   @default(false)
+  isRecurring    Boolean   @default(false)
+  recurringRule  String?
+  reminded       Boolean   @default(false)
+  status         String    @default("pending")
+  createdAt      DateTime  @default(now())
+
+  @@index([datetime])
+  @@index([status])
+}
+
+model Goal {
+  id           Int          @id @default(autoincrement())
+  title        String
+  description  String?
+  targetValue  Float?
+  currentValue Float        @default(0)
+  unit         String?
+  deadline     DateTime?
+  category     String       @default("personal")
+  status       String       @default("active")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  entries      GoalEntry[]
+
+  @@index([status])
+  @@index([category])
+}
+
+model GoalEntry {
+  id        Int      @id @default(autoincrement())
+  goalId    Int
+  value     Float
+  note      String?
+  createdAt DateTime @default(now())
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId])
+}
+
+model Project {
+  id              Int      @id @default(autoincrement())
+  name            String
+  description     String?
+  category        String   @default("sideproject")
+  githubRepo      String?
+  githubOwner     String?
+  githubRepoName  String?
+  priority        Int      @default(3)
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status])
+  @@index([category])
+}
+
+model ContextLog {
+  id          Int       @id @default(autoincrement())
+  description String
+  startDate   DateTime
+  endDate     DateTime?
+  impact      String?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@index([active])
+}
