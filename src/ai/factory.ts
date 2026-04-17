@@ -10,19 +10,19 @@ export function createAIProvider(): AIProvider {
     case 'gemini': {
       const key = process.env.GEMINI_API_KEY
       if (!key) throw new Error('GEMINI_API_KEY não definida no .env')
-      const model = process.env.GEMINI_MODEL
+      const model = process.env.GEMINI_MODEL || undefined
       return new GeminiProvider(key, model)
     }
     case 'anthropic': {
       const key = process.env.ANTHROPIC_API_KEY
       if (!key) throw new Error('ANTHROPIC_API_KEY não definida no .env')
-      const model = process.env.ANTHROPIC_MODEL
+      const model = process.env.ANTHROPIC_MODEL || undefined
       return new AnthropicProvider(key, model)
     }
     case 'openai': {
       const key = process.env.OPENAI_API_KEY
       if (!key) throw new Error('OPENAI_API_KEY não definida no .env')
-      const model = process.env.OPENAI_MODEL
+      const model = process.env.OPENAI_MODEL || undefined
       return new OpenAIProvider(key, model)
     }
     default:
