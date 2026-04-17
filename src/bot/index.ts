@@ -11,6 +11,7 @@ import {
 import { Interpreter } from '../ai/interpreter'
 import { Planner } from '../ai/planner'
 import { registerMessageCreate } from './events/messageCreate'
+import { prefetchDMChannel } from './prefetch-dm'
 
 import * as todayCmd from './commands/today'
 import * as planCmd from './commands/plan'
@@ -113,6 +114,12 @@ export class DenDenBot {
 
   async login() {
     await this.client.login(this.token)
+    // DMs criadas antes do bot estar online não geram CHANNEL_CREATE — sem este
+    // prefetch o discord.js descarta messageCreate pra esse canal silenciosamente.
+    const userId = process.env.DISCORD_USER_ID
+    if (userId) {
+      await prefetchDMChannel(this.client, userId)
+    }
   }
 
   getClient(): Client {
