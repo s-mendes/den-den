@@ -29,7 +29,24 @@ Stack: Node.js + TypeScript, discord.js v14, Prisma + PostgreSQL (Docker local n
    npm test                # suíte completa (Vitest)
    ```
 
-4. **Commit convencional** via `npm run commit` (cz-git guiado em PT-BR) ou manual:
+4. **Code review com Copilot** antes do commit. Rode o CLI do GitHub Copilot passando contexto completo e peça análise somente-leitura das alterações ainda não commitadas:
+   ```bash
+   copilot -p "Faça um code review das mudanças não commitadas. Use 'git diff HEAD' e 'git status' para ver o escopo, leia os arquivos conforme necessário. NÃO EDITE nada, apenas analise.
+
+   Contexto: <resuma a feature/fix — issue, objetivo, arquivos tocados, decisões não óbvias>.
+
+   Avalie:
+   1. Bugs latentes, race conditions, regressões (especialmente em handlers assíncronos do discord.js e jobs do node-cron)
+   2. Padrões do projeto (CLAUDE.md: injeção de dependência de AIProvider, prompts centralizados em src/ai/prompts.ts, validação Zod em src/ai/schemas.ts, Prisma somente via src/services/*.service.ts, datas em UTC no banco)
+   3. Cobertura de testes (Vitest) — novos casos cobrem golden path e edge cases? Mocks de LLM/Prisma estão corretos?
+   4. Segurança e secrets — nada de chave em código, entradas externas passam por Zod, comandos slash deferidos respeitam o timeout de 3s do Discord
+   5. Callers/consumidores que possam ter escapado da refatoração (grep por símbolos renomeados/removidos)
+
+   Formato: lista numerada, cada item com severidade [CRITICAL|HIGH|MEDIUM|LOW|NIT], arquivo:linha, descrição e sugestão concreta. Se não houver problemas em algum tópico, diga explicitamente. Seja sucinto e direto." --allow-all-tools
+   ```
+   Aplique os achados relevantes antes de seguir. Itens `NIT` podem virar follow-up; `CRITICAL`/`HIGH` bloqueiam o commit.
+
+5. **Commit convencional** via `npm run commit` (cz-git guiado em PT-BR) ou manual:
    ```bash
    npm run commit                                # prompt interativo
    git commit -m "feat: descrição em imperativo" # manual
@@ -37,7 +54,7 @@ Stack: Node.js + TypeScript, discord.js v14, Prisma + PostgreSQL (Docker local n
    Tipos aceitos: `feat`, `fix`, `refactor`, `perf`, `chore`, `docs`, `test`, `style`, `ci`, `build`, `revert`.
    Commits pequenos, escopo único. O hook `commit-msg` valida via `commitlint`; o `pre-commit` roda `typecheck + lint + test` automaticamente.
 
-5. **Push e PR** contra `main`. Merge apenas após revisão aprovada.
+6. **Push e PR** contra `main`. Merge apenas após revisão aprovada.
 
 ---
 
@@ -69,9 +86,11 @@ Para iniciar uma próxima issue sem herdar contexto da anterior:
 
 6. **Qualidade** antes do commit: type-check, lint, testes. Ver seção acima.
 
-7. **Commit convencional + PR** contra `main`.
+7. **Code review com Copilot** (`copilot -p "..." --allow-all-tools`) passando contexto da issue — ver prompt completo no passo 4 do "Workflow obrigatório". Trate `CRITICAL`/`HIGH` antes de commitar.
 
-8. **Checklist de QA manual** anexada ao PR, cobrindo golden path e edge cases relevantes:
+8. **Commit convencional + PR** contra `main`.
+
+9. **Checklist de QA manual** anexada ao PR, cobrindo golden path e edge cases relevantes:
    - Mensagem em DM é interpretada corretamente?
    - Intent errado cai em `chitchat` e pede esclarecimento?
    - Slash command deferido retorna resposta antes do timeout do Discord (3s)?
