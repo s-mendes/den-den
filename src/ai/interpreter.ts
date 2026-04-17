@@ -1,6 +1,7 @@
 import { AIProvider } from './provider'
 import { INTERPRETER_SYSTEM_PROMPT } from './prompts'
 import { Intent, parseIntent } from './schemas'
+import { formatDateForPrompt, formatDateTimeForPrompt } from './time'
 
 export type { Intent, IntentType } from './schemas'
 
@@ -55,9 +56,7 @@ export class Interpreter {
 
   private buildContextBlock(ctx: UserContext): string {
     const now = new Date()
-    const lines: string[] = [
-      `CONTEXTO DO USUÁRIO (data/hora atual: ${now.toISOString()}, fuso local: ${Intl.DateTimeFormat().resolvedOptions().timeZone})`,
-    ]
+    const lines: string[] = [`CONTEXTO DO USUÁRIO (agora: ${formatDateTimeForPrompt(now)})`]
 
     if (ctx.profile) {
       const p = ctx.profile
@@ -88,7 +87,7 @@ export class Interpreter {
     if (ctx.activeContext?.length) {
       lines.push('\n-- CONTEXTO TEMPORÁRIO ATIVO --')
       for (const c of ctx.activeContext) {
-        const until = c.endDate ? ` (até ${c.endDate.toISOString().slice(0, 10)})` : ''
+        const until = c.endDate ? ` (até ${formatDateForPrompt(c.endDate)})` : ''
         lines.push(`- ${c.description}${until}`)
       }
     }
@@ -96,7 +95,7 @@ export class Interpreter {
     if (ctx.upcomingEvents?.length) {
       lines.push('\n-- PRÓXIMOS EVENTOS --')
       for (const e of ctx.upcomingEvents) {
-        lines.push(`- ${e.datetime.toISOString()}: ${e.title}`)
+        lines.push(`- ${formatDateTimeForPrompt(e.datetime)}: ${e.title}`)
       }
     }
 
