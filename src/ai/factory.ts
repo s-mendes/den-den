@@ -2,8 +2,9 @@ import { AIProvider } from './provider'
 import { GeminiProvider } from './providers/gemini.provider'
 import { AnthropicProvider } from './providers/anthropic.provider'
 import { OpenAIProvider } from './providers/openai.provider'
+import { withRetry } from './retry'
 
-export function createAIProvider(): AIProvider {
+function buildProvider(): AIProvider {
   const provider = (process.env.AI_PROVIDER || 'gemini').toLowerCase()
 
   switch (provider) {
@@ -28,4 +29,8 @@ export function createAIProvider(): AIProvider {
     default:
       throw new Error(`Provedor desconhecido: "${provider}". Use: gemini | anthropic | openai`)
   }
+}
+
+export function createAIProvider(): AIProvider {
+  return withRetry(buildProvider())
 }

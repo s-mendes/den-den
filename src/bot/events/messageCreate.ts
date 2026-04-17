@@ -29,7 +29,7 @@ export function registerMessageCreate(client: Client, interpreter: Interpreter) 
     } catch (err) {
       console.error('Erro ao processar mensagem:', err)
       await message.reply(
-        'Deu um ruído na linha (kachak!). Tenta de novo daqui a pouco — ou checa meus logs.'
+        'Opa, minha linha tá meio chiada agora (kachak kachak!). A IA pediu um tempinho — me chama de novo daqui a uns minutos, tá? 🐚'
       )
     }
   })
