@@ -1,6 +1,7 @@
 import { AIProvider } from './provider'
 import { PLANNER_SYSTEM_PROMPT } from './prompts'
 import { UserContext } from './interpreter'
+import { formatDateTimeForPrompt } from './time'
 
 export class Planner {
   constructor(private ai: AIProvider) {}
@@ -57,7 +58,7 @@ export class Planner {
 
   private buildContextBlock(ctx: UserContext, extras?: { staleProjects?: string[] }): string {
     const now = new Date()
-    const lines: string[] = [`ESTADO ATUAL (agora: ${now.toISOString()})`]
+    const lines: string[] = [`ESTADO ATUAL (agora: ${formatDateTimeForPrompt(now)})`]
 
     if (ctx.profile) {
       const p = ctx.profile
@@ -71,7 +72,7 @@ export class Planner {
     if (ctx.upcomingEvents?.length) {
       lines.push('\nAGENDA:')
       for (const e of ctx.upcomingEvents) {
-        lines.push(`- ${e.datetime.toISOString()}: ${e.title}`)
+        lines.push(`- ${formatDateTimeForPrompt(e.datetime)}: ${e.title}`)
       }
     } else {
       lines.push('\nAGENDA: sem eventos nas próximas horas.')
