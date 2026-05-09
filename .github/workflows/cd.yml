@@ -12,7 +12,6 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH || 'den-den' }}
 
 jobs:
   image:
@@ -76,7 +75,9 @@ jobs:
     permissions:
       contents: read
       packages: read
-    environment: production
+    environment: VPS_DEPLOY
+    env:
+      DEPLOY_PATH: ${{ vars.VPS_DEPLOY_PATH || '/srv/apps/den-den' }}
 
     steps:
       - name: Checkout
