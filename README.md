@@ -74,28 +74,72 @@ O Postgres roda em container Docker via `infra/compose.yaml`, exposto na **porta
 
 ---
 
-## Deploy na VPS (Ubuntu 24 + PM2)
+## Deploy na VPS via Docker + GitHub Actions
 
-Na VPS você pode reaproveitar o mesmo `infra/compose.yaml` — só ajuste a porta no `.env` se quiser expor na 5432, ou mantenha só dentro da rede Docker.
+O deploy de produção não faz build na VPS. O fluxo é:
+
+1. Push na `main`.
+2. O workflow `CI` roda typecheck, lint e testes.
+3. Se o `CI` passar, o workflow `CD` builda a imagem no GitHub Actions.
+4. A imagem é publicada no GitHub Container Registry (`ghcr.io`).
+5. A VPS acessa via SSH, puxa a imagem pronta, roda migrations e reinicia o container.
+
+### Setup da VPS
+
+Pré-requisitos na VPS: Docker com Compose v2, um usuário com permissão para rodar `docker` e a network externa `apps-network` já conectada ao Postgres compartilhado.
+
+Crie o diretório de deploy e o `.env` de produção:
 
 ```bash
-# Postgres
-docker compose -f infra/compose.yaml up -d
-
-# Build
-npm run build
-
-# Rodar migrações
-npx prisma migrate deploy
-
-# Start com PM2
-pm2 start dist/index.js --name den-den
-pm2 save
-pm2 startup   # gera o script para iniciar no boot
+ssh usuario@IP_DA_VPS 'mkdir -p ~/den-den'
+scp infra/.env.production.example usuario@IP_DA_VPS:~/den-den/.env
+ssh usuario@IP_DA_VPS 'nano ~/den-den/.env'
 ```
 
-Logs: `pm2 logs den-den`
-Restart: `pm2 restart den-den`
+O compose de produção não sobe Postgres próprio. Ele conecta o app na network externa `apps-network`, então o `.env` da VPS deve usar como host o nome do container ou alias DNS do Postgres nessa rede:
+
+```env
+DATABASE_URL=postgresql://den_den:SENHA_FORTE@postgres:5432/den_den?schema=public
+```
+
+Se a network ainda não existir ou o Postgres ainda não estiver conectado nela:
+
+```bash
+docker network create apps-network
+docker network connect apps-network NOME_DO_CONTAINER_POSTGRES
+```
+
+### Secrets no GitHub
+
+Configure em `Settings > Secrets and variables > Actions`:
+
+| Nome | Tipo | Obrigatório | Valor |
+|---|---|---:|---|
+| `VPS_HOST` | Secret | Sim | IP ou hostname da VPS |
+| `VPS_USER` | Secret | Sim | usuário SSH |
+| `VPS_SSH_PRIVATE_KEY` | Secret | Sim | chave privada SSH para acessar a VPS |
+| `VPS_SSH_PORT` | Secret | Não | porta SSH, padrão `22` |
+| `VPS_DEPLOY_PATH` | Variable | Não | diretório remoto, padrão `den-den` |
+
+O workflow usa o `GITHUB_TOKEN` para publicar e puxar a imagem do GHCR durante o deploy.
+
+### Operação
+
+Depois do primeiro setup, basta fazer merge/push na `main`. Para rodar manualmente, use o workflow `CD` em `Actions > CD > Run workflow`.
+
+Logs na VPS:
+
+```bash
+docker logs -f den-den-app
+```
+
+Status/restart manual:
+
+```bash
+cd ~/den-den
+docker compose --env-file .env -f compose.yaml ps
+docker compose --env-file .env -f compose.yaml restart app
+```
 
 ---
 

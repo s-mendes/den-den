@@ -1,0 +1,17 @@
+name: den-den
+
+services:
+  app:
+    image: ${APP_IMAGE:?APP_IMAGE is required}
+    container_name: den-den-app
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    environment:
+      NODE_ENV: production
+    networks:
+      - apps-network
+
+networks:
+  apps-network:
+    external: true
