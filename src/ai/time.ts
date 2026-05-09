@@ -1,8 +1,10 @@
 // LLMs ignoram o sufixo `Z` do ISO 8601 e tratam o número como se fosse local
 // (ex: `2026-04-17T11:49Z` vira "11:49" pra eles). Formatamos no fuso do usuário
 // com o offset explícito pra remover qualquer ambiguidade.
+const DEFAULT_TIME_ZONE = 'America/Sao_Paulo'
+
 function resolveTimeZone(timeZone?: string): string {
-  return timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone
+  return timeZone ?? process.env.APP_TIME_ZONE ?? process.env.TZ ?? DEFAULT_TIME_ZONE
 }
 
 function partsMap(date: Date, timeZone: string, options: Intl.DateTimeFormatOptions) {

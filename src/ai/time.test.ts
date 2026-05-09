@@ -1,5 +1,11 @@
-import { describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect } from 'vitest'
 import { formatDateTimeForPrompt, formatDateForPrompt } from './time'
+
+const originalEnv = { ...process.env }
+
+afterEach(() => {
+  process.env = { ...originalEnv }
+})
 
 describe('formatDateTimeForPrompt', () => {
   it('formata data+hora no fuso informado com offset explícito', () => {
@@ -15,11 +21,21 @@ describe('formatDateTimeForPrompt', () => {
     expect(formatted).toBe('2026-04-17 11:49:06 (UTC, UTC+00:00)')
   })
 
-  it('usa o fuso do sistema quando nenhum é passado', () => {
+  it('usa America/Sao_Paulo como fuso padrão quando nenhum é passado', () => {
     const date = new Date('2026-04-17T11:49:06Z')
-    const systemTz = Intl.DateTimeFormat().resolvedOptions().timeZone
+    delete process.env.APP_TIME_ZONE
+    delete process.env.TZ
+
     const formatted = formatDateTimeForPrompt(date)
-    expect(formatted).toContain(systemTz)
+    expect(formatted).toBe('2026-04-17 08:49:06 (America/Sao_Paulo, UTC-03:00)')
+  })
+
+  it('usa APP_TIME_ZONE quando definido', () => {
+    const date = new Date('2026-04-17T11:49:06Z')
+    process.env.APP_TIME_ZONE = 'UTC'
+
+    const formatted = formatDateTimeForPrompt(date)
+    expect(formatted).toBe('2026-04-17 11:49:06 (UTC, UTC+00:00)')
   })
 })
 
