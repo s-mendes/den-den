@@ -29,24 +29,7 @@ Stack: Node.js + TypeScript, discord.js v14, Prisma + PostgreSQL (Docker local n
    npm test                # suíte completa (Vitest)
    ```
 
-4. **Code review com Copilot** antes do commit. Rode o CLI do GitHub Copilot passando contexto completo e peça análise somente-leitura das alterações ainda não commitadas:
-   ```bash
-   copilot -p "Faça um code review das mudanças não commitadas. Use 'git diff HEAD' e 'git status' para ver o escopo, leia os arquivos conforme necessário. NÃO EDITE nada, apenas analise.
-
-   Contexto: <resuma a feature/fix — issue, objetivo, arquivos tocados, decisões não óbvias>.
-
-   Avalie:
-   1. Bugs latentes, race conditions, regressões (especialmente em handlers assíncronos do discord.js e jobs do node-cron)
-   2. Padrões do projeto (CLAUDE.md: injeção de dependência de AIProvider, prompts centralizados em src/ai/prompts.ts, validação Zod em src/ai/schemas.ts, Prisma somente via src/services/*.service.ts, datas em UTC no banco)
-   3. Cobertura de testes (Vitest) — novos casos cobrem golden path e edge cases? Mocks de LLM/Prisma estão corretos?
-   4. Segurança e secrets — nada de chave em código, entradas externas passam por Zod, comandos slash deferidos respeitam o timeout de 3s do Discord
-   5. Callers/consumidores que possam ter escapado da refatoração (grep por símbolos renomeados/removidos)
-
-   Formato: lista numerada, cada item com severidade [CRITICAL|HIGH|MEDIUM|LOW|NIT], arquivo:linha, descrição e sugestão concreta. Se não houver problemas em algum tópico, diga explicitamente. Seja sucinto e direto." --allow-all-tools
-   ```
-   Aplique os achados relevantes antes de seguir. Itens `NIT` podem virar follow-up; `CRITICAL`/`HIGH` bloqueiam o commit.
-
-5. **Commit convencional** via `npm run commit` (cz-git guiado em PT-BR) ou manual:
+4. **Commit convencional** via `npm run commit` (cz-git guiado em PT-BR) ou manual:
    ```bash
    npm run commit                                # prompt interativo
    git commit -m "feat: descrição em imperativo" # manual
@@ -54,7 +37,7 @@ Stack: Node.js + TypeScript, discord.js v14, Prisma + PostgreSQL (Docker local n
    Tipos aceitos: `feat`, `fix`, `refactor`, `perf`, `chore`, `docs`, `test`, `style`, `ci`, `build`, `revert`.
    Commits pequenos, escopo único. O hook `commit-msg` valida via `commitlint`; o `pre-commit` roda `typecheck + lint + test` automaticamente.
 
-6. **Push e PR** contra `main`. Merge apenas após revisão aprovada.
+5. **Push e PR** contra `main`. Merge apenas após revisão aprovada.
 
 ---
 
@@ -86,11 +69,9 @@ Para iniciar uma próxima issue sem herdar contexto da anterior:
 
 6. **Qualidade** antes do commit: type-check, lint, testes. Ver seção acima.
 
-7. **Code review com Copilot** (`copilot -p "..." --allow-all-tools`) passando contexto da issue — ver prompt completo no passo 4 do "Workflow obrigatório". Trate `CRITICAL`/`HIGH` antes de commitar.
+7. **Commit convencional + PR** contra `main`.
 
-8. **Commit convencional + PR** contra `main`.
-
-9. **Checklist de QA manual** anexada ao PR, cobrindo golden path e edge cases relevantes:
+8. **Checklist de QA manual** anexada ao PR, cobrindo golden path e edge cases relevantes:
    - Mensagem em DM é interpretada corretamente?
    - Intent errado cai em `chitchat` e pede esclarecimento?
    - Slash command deferido retorna resposta antes do timeout do Discord (3s)?
@@ -131,9 +112,83 @@ Para iniciar uma próxima issue sem herdar contexto da anterior:
 
 ---
 
+## Regras de Produto
+
+**Regra fundamental:** O Den Den não deve maximizar produtividade. Ele deve maximizar **consistência sem burnout**.
+
+Visão do projeto:
+
+> Den Den é um secretário pessoal que cruza agenda, energia, metas e projetos para decidir o que você deve fazer hoje — **e o que você deve ignorar.**
+
+Heurísticas que devem guiar toda decisão de produto:
+
+1. Nunca sugira "programar mais" em um dia com >8h de trabalho
+2. Se o usuário não treinou há >3 dias, priorize saúde acima de side projects
+3. Sempre diga o que IGNORAR hoje — tão importante quanto o que fazer
+4. 2 noites livres por semana são sagradas, não negociáveis
+5. Semana de 70% das metas é excelente. 100% toda semana é burnout
+6. Quando o usuário falhar um bloco, redistribua — não culpe
+7. Detecte padrões de sobrecarga e alerte ANTES do burnout
+
+---
+
+## Gestão de Projeto no GitHub
+
+O projeto é organizado em **milestones** (sprints) com **issues** detalhadas.
+
+### Convenções de Milestones
+
+Cada milestone representa uma sprint/fase do roadmap com escopo fechado:
+
+| Milestone | Objetivo |
+|---|---|
+| Sprint 1 — Den Den Útil de Verdade | Áreas da vida, Google Calendar, metas semanais, /today inteligente |
+| Sprint 2 — Den Den Gerente de Projetos | GitHub Issues, task selector, /focus, /done |
+| Sprint 3 — Den Den Criador de Conteúdo | Pipeline de vídeos, comandos /video |
+| Sprint 4 — Den Den Agente Autônomo | Replanejamento automático, burnout detector, modos operacionais |
+
+### Convenções de Issues
+
+Cada issue segue este template:
+- **Título**: `feat: descrição clara da entrega` (commitlint-friendly)
+- **Labels**: `fase:N` + `area:X` + `prioridade:Y` + `enhancement`
+- **Milestone**: sprint correspondente
+- **Body**: Objetivo → Contexto → Plano de Implementação (com código) → Critérios de Aceite (checklist) → Arquivos Afetados → Dependências
+
+### Labels disponíveis
+
+| Label | Uso |
+|---|---|
+| `fase:1` a `fase:4` | Sprint/fase do roadmap |
+| `area:model` | Mudanças em Prisma schema |
+| `area:integration` | Integrações externas (Google Calendar, GitHub) |
+| `area:ai` | IA/LLM — prompts, planner, interpreter |
+| `area:bot` | Discord bot — commands, events |
+| `area:scheduler` | Cron jobs e notificações proativas |
+| `prioridade:critica` | Essencial para a fase funcionar |
+| `prioridade:alta` | Importante mas não bloqueante |
+| `prioridade:media` | Desejável, pode esperar |
+| `produto` | Regra de produto / visão / filosofia |
+
+### Áreas da vida do usuário
+
+O Den Den organiza a vida do usuário em 6 áreas:
+
+| Área | Slug | Exemplos |
+|---|---|---|
+| Trabalho fixo | `work` | Macle Sistemas |
+| Negócios | `business` | Zestify, Excursa |
+| Conteúdo | `content` | Retro Play Archive |
+| Saúde | `health` | Treino, atividade física |
+| Pessoal | `personal` | Descanso, lazer, relacionamento |
+| Estudo | `study` | Cursos, livros, pesquisa |
+
+---
+
 ## Referências úteis
 
 - `README.md` — setup, scripts e arquitetura para onboarding
 - `.env.example` — fonte da verdade de variáveis necessárias
 - `infra/compose.yaml` — Postgres local (porta 5433)
 - `prisma/schema.prisma` — modelo de dados
+- [GitHub Milestones](https://github.com/s-mendes/den-den/milestones) — roadmap com sprints e issues
