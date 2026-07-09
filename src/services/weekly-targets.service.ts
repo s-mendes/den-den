@@ -130,4 +130,30 @@ export const weeklyTargetsService = {
       total,
     }
   },
+
+  async logActivity(areaSlug: AreaSlug, description: string, date: Date = new Date()) {
+    const weekStart = getCurrentWeekStart(date)
+    const targets = await this.listByArea(areaSlug)
+    
+    if (targets.length === 0) {
+      // Se não há metas ativas nessa área, não há o que registrar
+      return null
+    }
+
+    let matchedTarget = targets[0]
+    const descLower = description.toLowerCase()
+    let maxMatches = 0
+    
+    // Tenta encontrar a meta com mais palavras-chaves coincidentes (palavras > 3 letras)
+    for (const target of targets) {
+      const actWords = target.activity.toLowerCase().split(/\s+/).filter(w => w.length > 3)
+      const matches = actWords.filter(word => descLower.includes(word)).length
+      if (matches > maxMatches) {
+        maxMatches = matches
+        matchedTarget = target
+      }
+    }
+
+    return this.incrementProgress(matchedTarget.id, weekStart, 1, description)
+  },
 }

@@ -4,6 +4,8 @@ import { goalsService } from '../services/goals.service'
 import { projectsService } from '../services/projects.service'
 import { profileService } from '../services/profile.service'
 import { contextService } from '../services/context.service'
+import { weeklyTargetsService } from '../services/weekly-targets.service'
+import { AreaSlug } from '@prisma/client'
 
 export async function applyIntent(intent: Intent, discordUserId: string): Promise<void> {
   switch (intent.type) {
@@ -35,6 +37,12 @@ export async function applyIntent(intent: Intent, discordUserId: string): Promis
 
     case 'delay_tasks':
       await eventsService.delayAll(intent.data.days)
+      return
+
+    case 'nightly_checkin':
+      for (const act of intent.data.activities) {
+        await weeklyTargetsService.logActivity(act.areaSlug as AreaSlug, act.description)
+      }
       return
 
     case 'query':
