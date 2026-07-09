@@ -69,13 +69,17 @@ Para iniciar uma próxima issue sem herdar contexto da anterior:
 
 6. **Qualidade** antes do commit: type-check, lint, testes. Ver seção acima.
 
-7. **Commit convencional + PR** contra `main`.
-
-8. **Checklist de QA manual** anexada ao PR, cobrindo golden path e edge cases relevantes:
+7. **Commit convencional + PR** contra `main`:
+   - Utilize o template padrão do GitHub localizado em `.github/pull_request_template.md`.
+   - Adicione palavras-chave como `Closes #X` ou `Fixes #X` para fechar automaticamente as issues relacionadas ao realizar o merge do PR.
+   - Forneça uma checklist de testes de QA manual detalhando o Golden Path (fluxo principal) e Edge Cases (casos de erro) validados.
+   
+8. **Checklist padrão de QA manual** no PR (conforme o template):
    - Mensagem em DM é interpretada corretamente?
    - Intent errado cai em `chitchat` e pede esclarecimento?
    - Slash command deferido retorna resposta antes do timeout do Discord (3s)?
    - Notificação cron dispara pro `DISCORD_USER_ID` correto?
+
 
 ---
 
