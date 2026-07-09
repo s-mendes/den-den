@@ -72,6 +72,21 @@ O Postgres roda em container Docker via `infra/compose.yaml`, exposto na **porta
 | `npm run db:migrate` | Cria/aplica migrations do Prisma |
 | `npm run db:studio` | Abre o Prisma Studio pra inspecionar o banco |
 
+### Google Calendar Integration
+
+O Den Den se conecta à API do Google Calendar para ler a agenda real e planejar blocos livres. Para configurar:
+
+1. Acesse o [Google Cloud Console](https://console.cloud.google.com/).
+2. Crie um novo projeto e ative a **Google Calendar API**.
+3. Em **OAuth Consent Screen**, configure o app como *External* e adicione o seu e-mail como *Test User*.
+4. Vá em **Credentials**, crie uma **OAuth client ID** (tipo *Web application* ou *Desktop app*).
+5. Adicione `https://developers.google.com/oauthplayground` às URIs de redirecionamento autorizadas (se usar Web).
+6. Obtenha o seu `refresh_token` utilizando o [OAuth 2.0 Playground](https://developers.google.com/oauthplayground):
+   - Escopo para selecionar: `https://www.googleapis.com/auth/calendar.readonly`.
+7. Preencha os campos `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN` e `GOOGLE_CALENDAR_ID` no seu arquivo `.env`.
+
+> 💡 **Graceful Fallback:** Caso as credenciais do Google Calendar não estejam configuradas, o Den Den iniciará normalmente em modo degradado sem ler a agenda.
+
 ---
 
 ## Deploy na VPS via Docker + GitHub Actions
