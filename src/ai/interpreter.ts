@@ -49,6 +49,12 @@ export interface UserContext {
     hasPersonalTime: boolean
     totalDurationMinutes: number
   }
+  weeklyScore?: {
+    score: number
+    completed: number
+    total: number
+  }
+  weeklyStreak?: number
 }
 
 export class Interpreter {
@@ -147,6 +153,12 @@ export class Interpreter {
       for (const wp of ctx.weeklyProgress) {
         const notesStr = wp.notes ? ` (${wp.notes})` : ''
         lines.push(`- [${wp.areaSlug.toUpperCase()}] ${wp.activity}: ${wp.completedCount} / ${wp.targetCount}${notesStr}`)
+      }
+      if (ctx.weeklyScore) {
+        lines.push(`Score Semanal Atual: ${ctx.weeklyScore.completed} / ${ctx.weeklyScore.total} (${ctx.weeklyScore.score}%)`)
+      }
+      if (typeof ctx.weeklyStreak === 'number') {
+        lines.push(`Streak Semanal (semanas seguidas acima de 70%): ${ctx.weeklyStreak}`)
       }
     }
 
