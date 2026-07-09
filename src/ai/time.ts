@@ -37,6 +37,16 @@ export function formatDateTimeForPrompt(date: Date, timeZone?: string): string {
   return `${datePart} ${timePart} (${tz}, ${offset})`
 }
 
+export function formatTimeForPrompt(date: Date, timeZone?: string): string {
+  const tz = resolveTimeZone(timeZone)
+  const map = partsMap(date, tz, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  })
+  return `${map.hour}:${map.minute}`
+}
+
 export function formatDateForPrompt(date: Date, timeZone?: string): string {
   const tz = resolveTimeZone(timeZone)
   const map = partsMap(date, tz, {

@@ -5,6 +5,7 @@ import { buildUserContext } from '../bot/context'
 import { eventsService } from '../services/events.service'
 import { projectsService } from '../services/projects.service'
 import { getGitHubClient } from '../github/client'
+import { formatTimeForPrompt } from '../ai/time'
 
 export class Scheduler {
   constructor(
@@ -50,7 +51,7 @@ export class Scheduler {
   async eventReminders() {
     const events = await eventsService.findDueForReminder()
     for (const e of events) {
-      const when = e.datetime.toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      const when = formatTimeForPrompt(e.datetime)
       const location = e.location ? ` em ${e.location}` : ''
       const person = e.contactPerson ? ` com ${e.contactPerson}` : ''
       await this.dm(

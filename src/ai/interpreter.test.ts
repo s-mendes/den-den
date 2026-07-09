@@ -73,6 +73,75 @@ describe('Interpreter.interpret', () => {
     )
   })
 
+  it('injeta agenda do Google Calendar, blocos livres e análise de carga no contexto enviado à IA', async () => {
+    const provider = makeProvider([
+      JSON.stringify({ type: 'chitchat', data: {}, response: 'oi' }),
+    ])
+    const interpreter = new Interpreter(provider)
+    const context: UserContext = {
+      discordUserId: 'u1',
+      calendarEvents: [
+        {
+          id: '1',
+          // 10:00Z → 07:00 em America/Sao_Paulo (fuso padrão)
+          title: 'Acordar, café, banho',
+          start: new Date('2026-07-09T10:00:00Z'),
+          end: new Date('2026-07-09T11:00:00Z'),
+          isAllDay: false,
+        },
+        {
+          id: '2',
+          title: 'Feriado',
+          start: new Date('2026-07-09T03:00:00Z'),
+          end: new Date('2026-07-10T03:00:00Z'),
+          isAllDay: true,
+        },
+      ],
+      freeBlocks: [
+        {
+          start: new Date('2026-07-09T11:00:00Z'),
+          end: new Date('2026-07-09T15:00:00Z'),
+          durationMinutes: 240,
+        },
+      ],
+      dayAnalysis: {
+        isHeavyWorkDay: true,
+        hasWorkout: false,
+        hasPersonalTime: true,
+        totalDurationMinutes: 60,
+      },
+    }
+
+    await interpreter.interpret('o que tem na agenda hoje?', context)
+
+    const messages = vi.mocked(provider.chat).mock.calls[0][0]
+    const contextBlock = messages[1].content
+
+    expect(contextBlock).toContain('-- AGENDA DE HOJE (Google Calendar) --')
+    expect(contextBlock).toContain('[07:00 - 08:00] - Acordar, café, banho')
+    expect(contextBlock).toContain('[Dia Inteiro] - Feriado')
+    expect(contextBlock).toContain('-- BLOCOS LIVRES OPERACIONAIS DE HOJE --')
+    expect(contextBlock).toContain('08:00 às 12:00 (240 minutos livres)')
+    expect(contextBlock).toContain('-- ANÁLISE DE CARGA DE HOJE --')
+    expect(contextBlock).toContain('Expediente de trabalho pesado (>8h)? SIM')
+    expect(contextBlock).toContain('Praticou atividade física/treino hoje? NÃO')
+  })
+
+  it('não injeta blocos de agenda quando o contexto não tem dados de calendário', async () => {
+    const provider = makeProvider([
+      JSON.stringify({ type: 'chitchat', data: {}, response: 'oi' }),
+    ])
+    const interpreter = new Interpreter(provider)
+
+    await interpreter.interpret('oi', baseContext)
+
+    const messages = vi.mocked(provider.chat).mock.calls[0][0]
+    const contextBlock = messages[1].content
+
+    expect(contextBlock).not.toContain('AGENDA DE HOJE')
+    expect(contextBlock).not.toContain('BLOCOS LIVRES')
+  })
+
   it('interpreta relatos de check-in noturno como nightly_checkin intent', async () => {
     const raw = JSON.stringify({
       type: 'nightly_checkin',
