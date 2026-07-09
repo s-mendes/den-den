@@ -28,7 +28,7 @@ export const createGoalIntent = z.object({
     targetValue: z.number().optional(),
     unit: z.string().optional(),
     deadline: isoDate.optional(),
-    category: z.enum(['work', 'personal', 'sideproject']).optional(),
+    areaSlug: z.enum(['work', 'business', 'content', 'health', 'personal', 'study']).optional(),
   }),
   ...baseResponse,
 })
@@ -70,7 +70,7 @@ export const createProjectIntent = z.object({
   data: z.object({
     name: z.string().min(1),
     description: z.string().optional(),
-    category: z.enum(['work', 'sideproject', 'personal']).optional(),
+    areaSlug: z.enum(['work', 'business', 'content', 'health', 'personal', 'study']).optional(),
     githubRepo: z
       .string()
       .regex(/^[^/\s]+\/[^/\s]+$/, 'githubRepo deve estar no formato "owner/repo"')

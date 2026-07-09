@@ -1,9 +1,10 @@
 import { prisma } from './db'
+import { AreaSlug } from '@prisma/client'
 
 export interface CreateProjectInput {
   name: string
   description?: string
-  category?: 'work' | 'sideproject' | 'personal'
+  areaSlug?: AreaSlug
   githubRepo?: string
   priority?: number
 }
@@ -21,7 +22,7 @@ export const projectsService = {
       data: {
         name: input.name,
         description: input.description,
-        category: input.category ?? 'sideproject',
+        areaSlug: input.areaSlug ?? AreaSlug.business,
         githubRepo: input.githubRepo,
         githubOwner: owner,
         githubRepoName: name,

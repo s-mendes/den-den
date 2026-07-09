@@ -35,17 +35,17 @@ describe('intentSchema — discriminated union', () => {
         targetValue: 30,
         unit: 'horas',
         deadline: '2026-04-30T23:59:59Z',
-        category: 'work',
+        areaSlug: 'work',
       },
       response: 'Meta criada!',
     }
     expect(intentSchema.safeParse(input).success).toBe(true)
   })
 
-  it('rejeita category inválida em create_goal', () => {
+  it('rejeita areaSlug inválida em create_goal', () => {
     const input = {
       type: 'create_goal',
-      data: { title: 'x', category: 'hobby' },
+      data: { title: 'x', areaSlug: 'hobby' },
       response: 'ok',
     }
     expect(intentSchema.safeParse(input).success).toBe(false)
