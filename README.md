@@ -1,10 +1,10 @@
 # 🐚 Den Den
 
-**Seu secretário pessoal de vida, em Discord.**
+**Secretário pessoal que decide o que você deve fazer hoje — e o que você deve ignorar.**
 
-Inspirado no [Den Den Mushi](https://onepiece.fandom.com/wiki/Den_Den_Mushi) de *One Piece* — o sistema de comunicação que conecta o mundo inteiro — o Den Den conecta sua agenda, metas, side projects e contexto de vida num único bot que te empurra na direção dos seus sonhos.
+Inspirado no [Den Den Mushi](https://onepiece.fandom.com/wiki/Den_Den_Mushi) de *One Piece* — o sistema de comunicação que conecta o mundo inteiro —, o Den Den conecta sua agenda, metas, side projects e contexto de vida num único bot no Discord.
 
-Ele não é um gerenciador de tarefas. Ele é um **secretário motivador** que conhece sua vida inteira, conversa em linguagem natural (PT ou EN) e te cobra quando você está desviando do caminho.
+Ele não é um gerenciador de tarefas nem um maximizador de produtividade clássico. A missão fundamental do Den Den é **maximizar a consistência sem burnout**, agindo como um protetor da sua saúde mental e foco, dizendo "pare" tanto quanto diz "faça".
 
 ---
 
@@ -18,6 +18,19 @@ Ele não é um gerenciador de tarefas. Ele é um **secretário motivador** que c
 - 🔔 **Notificações proativas**: bom dia matinal, lembretes de eventos, check noturno, resumo semanal
 
 Tudo em linguagem natural. Você fala normal, o Den Den interpreta.
+
+---
+
+## 🧘 Filosofia de Produto: Consistência sem Burnout
+
+O Den Den foi desenhado especificamente para quem tem excesso de ideias e projetos competindo pelo mesmo tempo livre. Sua inteligência artificial atua sob heurísticas estritas para proteger sua energia física e mental:
+
+1. **Heavy Work Days Protegidos:** Se você tem mais de 8 horas de expediente/trabalho no calendário de hoje, o bot é proibido de recomendar side projects. Ele sugerirá descanso ou cuidados pessoais.
+2. **Prioridade para Saúde (Health First):** Se o bot detectar que você não treina ou pratica exercícios físicos há mais de 3 dias, a área de saúde se torna foco absoluto, travando a recomendação de programar side projects até você se movimentar.
+3. **Decidir o que IGNORAR:** Em todo planejamento (/plan) ou briefing diário (/today), o bot escolhe no máximo uma única tarefa de foco e lista explicitamente o que você deve **ignorar** hoje para reduzir a ansiedade.
+4. **Respeito às Noites Livres:** Duas noites por semana são protegidas por padrão no agendamento do bot apenas para ócio e recuperação total.
+5. **A Regra dos 70%:** Uma semana em que você cumpriu 70% de suas metas é considerada um sucesso excelente. O Den Den nunca cobra 100% de consistência, pois sabe que a perfeição é o atalho mais curto para a exaustão.
+6. **Zero Culpa:** Se você perder algum bloco ou falhar em uma meta, a IA redistribuirá os prazos no planejamento de forma acolhedora, sem cobranças ou tons acusatórios.
 
 ---
 
