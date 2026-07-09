@@ -42,12 +42,22 @@ describe('Interpreter.interpret', () => {
     expect(intent.response).toMatch(/não consegui entender/i)
   })
 
-  it('cai em chitchat seguro quando LLM devolve JSON fora do schema', async () => {
-    const raw = JSON.stringify({ type: 'create_event', data: { title: 'sem data' }, response: 'x' })
+  it('cai em chitchat seguro mas recupera a resposta amigável do JSON quando LLM devolve JSON fora do schema', async () => {
+    const raw = JSON.stringify({ type: 'create_event', data: { title: 'sem data' }, response: 'Desculpe, faltou a data!' })
     const interpreter = new Interpreter(makeProvider([raw]))
     const intent = await interpreter.interpret('algo', baseContext)
 
     expect(intent.type).toBe('chitchat')
+    expect(intent.response).toBe('Desculpe, faltou a data!')
+  })
+
+  it('cai em chitchat seguro com mensagem de erro padrão se o JSON fora do schema não tiver o campo response', async () => {
+    const raw = JSON.stringify({ type: 'create_event', data: { title: 'sem data' } })
+    const interpreter = new Interpreter(makeProvider([raw]))
+    const intent = await interpreter.interpret('algo', baseContext)
+
+    expect(intent.type).toBe('chitchat')
+    expect(intent.response).toMatch(/não consegui entender/i)
   })
 
   it('chama o provider com jsonMode ativado', async () => {

@@ -78,10 +78,21 @@ export class Interpreter {
       `[interpreter] resposta do LLM rejeitada (${result.reason}): ${result.detail}\nraw: ${response.text}`
     )
 
+    let recoveryResponse: string | undefined
+    try {
+      const parsed = JSON.parse(response.text)
+      if (parsed && typeof parsed === 'object' && 'response' in parsed && typeof parsed.response === 'string') {
+        recoveryResponse = parsed.response
+      }
+    } catch {
+      // ignore
+    }
+
     return {
       type: 'chitchat',
       data: {},
       response:
+        recoveryResponse ||
         'Hmm, não consegui entender direito. Pode reformular? Me conta o que você quer fazer.',
     }
   }

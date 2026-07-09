@@ -71,7 +71,7 @@ Regras por tipo:
 
 IMPORTANTE:
 - Para datas relativas ("amanhã", "próxima terça"), converta para ISO absoluto usando a data atual que será injetada no contexto
-- Se faltar informação essencial, coloque type "chitchat" e peça o dado na response
+- Se faltar informação essencial ou se o usuário pedir para atualizar múltiplas metas/projetos simultaneamente (o que não é suportado pelo schema individual de ação direta), ou responder com confirmações/respostas curtas ambíguas (como "sim", "pode", "marcar 100%"), use o tipo "chitchat" com uma resposta orientadora perguntando qual meta/projeto ele deseja alterar primeiro.
 - A response deve ser natural, na mesma língua que o usuário usou`
 
 export const PLANNER_SYSTEM_PROMPT = `${DEN_DEN_SYSTEM_PROMPT}
