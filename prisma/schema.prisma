@@ -18,6 +18,28 @@ model Profile {
   updatedAt       DateTime @updatedAt
 }
 
+enum AreaSlug {
+  work
+  business
+  content
+  health
+  personal
+  study
+}
+
+model Area {
+  id          Int       @id @default(autoincrement())
+  slug        AreaSlug  @unique
+  name        String
+  description String?
+  emoji       String?
+  color       String?
+  createdAt   DateTime  @default(now())
+
+  projects    Project[]
+  goals       Goal[]
+}
+
 model Event {
   id             Int       @id @default(autoincrement())
   title          String
@@ -44,14 +66,15 @@ model Goal {
   currentValue Float        @default(0)
   unit         String?
   deadline     DateTime?
-  category     String       @default("personal")
+  areaSlug     AreaSlug?
+  area         Area?        @relation(fields: [areaSlug], references: [slug])
   status       String       @default("active")
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   entries      GoalEntry[]
 
   @@index([status])
-  @@index([category])
+  @@index([areaSlug])
 }
 
 model GoalEntry {
@@ -69,7 +92,8 @@ model Project {
   id              Int      @id @default(autoincrement())
   name            String
   description     String?
-  category        String   @default("sideproject")
+  areaSlug        AreaSlug?
+  area            Area?     @relation(fields: [areaSlug], references: [slug])
   githubRepo      String?
   githubOwner     String?
   githubRepoName  String?
@@ -79,7 +103,7 @@ model Project {
   updatedAt       DateTime @updatedAt
 
   @@index([status])
-  @@index([category])
+  @@index([areaSlug])
 }
 
 model ContextLog {
@@ -93,3 +117,4 @@ model ContextLog {
 
   @@index([active])
 }
+

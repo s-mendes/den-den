@@ -27,7 +27,14 @@ Regras por tipo:
    data: { title, description?, datetime (ISO 8601), location?, contactPerson?, isAllDay? }
 
 2. create_goal — meta com valor alvo e prazo
-   data: { title, description?, targetValue?, unit?, deadline? (ISO 8601), category (work|personal|sideproject) }
+   data: { title, description?, targetValue?, unit?, deadline? (ISO 8601), areaSlug (work|business|content|health|personal|study) }
+   Significado das áreas (areaSlug):
+   - work: Trabalho fixo (ex: Macle Sistemas)
+   - business: Projetos comerciais paralelos (ex: Zestify, Excursa)
+   - content: Criação de conteúdo (ex: Retro Play Archive, gameplays, vídeos)
+   - health: Saúde, treino, atividade física, sono
+   - personal: Lazer, família, relacionamento (Luana), descanso
+   - study: Estudos, cursos, leitura, aprendizado
 
 3. log_progress — registrar avanço em meta existente
    data: { goalTitle, value, note? }
@@ -39,7 +46,7 @@ Regras por tipo:
    data: { description, startDate (ISO), endDate? (ISO), impact? ("pause_reminders"|"delay_deadlines"|"reduce_goals") }
 
 6. create_project — side project ou projeto principal
-   data: { name, description?, category (work|sideproject|personal), githubRepo? (owner/repo), priority? (1-5) }
+   data: { name, description?, areaSlug (work|business|content|health|personal|study), githubRepo? (owner/repo), priority? (1-5) }
 
 7. query — usuário quer consultar algo (agenda, metas, projetos)
    data: { topic: "today"|"week"|"goals"|"projects"|"profile"|"free" }

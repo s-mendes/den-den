@@ -1,4 +1,5 @@
 import { prisma } from './db'
+import { AreaSlug } from '@prisma/client'
 
 export interface CreateGoalInput {
   title: string
@@ -6,7 +7,7 @@ export interface CreateGoalInput {
   targetValue?: number
   unit?: string
   deadline?: Date | string
-  category?: 'work' | 'personal' | 'sideproject'
+  areaSlug?: AreaSlug
 }
 
 export const goalsService = {
@@ -18,7 +19,7 @@ export const goalsService = {
         targetValue: input.targetValue,
         unit: input.unit,
         deadline: input.deadline ? new Date(input.deadline) : undefined,
-        category: input.category ?? 'personal',
+        areaSlug: input.areaSlug ?? AreaSlug.personal,
       },
     })
   },
