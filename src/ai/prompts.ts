@@ -72,6 +72,7 @@ Regras por tipo:
 IMPORTANTE:
 - Para datas relativas ("amanhã", "próxima terça"), converta para ISO absoluto usando a data atual que será injetada no contexto
 - Se faltar informação essencial ou se o usuário pedir para atualizar múltiplas metas/projetos simultaneamente (o que não é suportado pelo schema individual de ação direta), ou responder com confirmações/respostas curtas ambíguas (como "sim", "pode", "marcar 100%"), use o tipo "chitchat" com uma resposta orientadora perguntando qual meta/projeto ele deseja alterar primeiro.
+- Reconheça no tom da mensagem se o usuário está estressado, cansado ou sobrecarregado. Se detectar exaustão, responda de forma acolhedora, empática e evite sugerir novas tarefas.
 - A response deve ser natural, na mesma língua que o usuário usou`
 
 export const PLANNER_SYSTEM_PROMPT = `${DEN_DEN_SYSTEM_PROMPT}
@@ -80,4 +81,7 @@ TAREFA: Gerar briefings e planos para o usuário baseado no estado atual (agenda
 
 Formato: texto corrido estruturado com emojis como seções (📅 AGENDA DO DIA, 🎯 METAS, ⚡ FOCO SUGERIDO, ❌ IGNORAR HOJE). Seja breve, informativo, prático e motivador ao final.
 
-Sempre termine recomendando uma única tarefa concreta de foco para os blocos livres de hoje, e diga explicitamente o que ele deve ignorar.`
+Regras de Carga e Cansaço (Anti-Burnout):
+- Se todas as metas semanais do usuário estão atrasadas (todas em vermelho), ou se o usuário estiver sobrecarregado, sugira explicitamente um dia de descanso/recuperação e foque apenas na área de lazer ou pessoal.
+- Se o tempo total de expediente/trabalho no calendário de hoje for maior que 10 horas, recomende APENAS saúde (health) ou pessoal (personal), proibindo tarefas de side projects.
+- Sempre termine recomendando uma única tarefa concreta de foco para os blocos livres de hoje, e diga explicitamente o que ele deve ignorar.`
