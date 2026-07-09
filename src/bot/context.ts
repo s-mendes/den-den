@@ -8,7 +8,7 @@ import { weeklyTargetsService, getCurrentWeekStart } from '../services/weekly-ta
 import { googleCalendarClient } from '../calendar/google-calendar'
 import { analyzeDayEvents } from '../calendar/parser'
 
-export async function buildUserContext(discordUserId: string): Promise<UserContext> {
+export async function buildUserContext(discordUserId: string, daysAhead: number = 1): Promise<UserContext> {
   const profile = await profileService.getOrCreate(discordUserId)
   const longTermGoals = await profileService.getLongTermGoals(discordUserId)
   const weekStart = getCurrentWeekStart()
@@ -16,8 +16,9 @@ export async function buildUserContext(discordUserId: string): Promise<UserConte
   const now = new Date()
   const startOfDay = new Date(now)
   startOfDay.setHours(0, 0, 0, 0)
-  const endOfDay = new Date(now)
-  endOfDay.setHours(23, 59, 59, 999)
+  const endOfRange = new Date(now)
+  endOfRange.setDate(endOfRange.getDate() + daysAhead - 1)
+  endOfRange.setHours(23, 59, 59, 999)
 
   const [
     goals,
@@ -31,9 +32,9 @@ export async function buildUserContext(discordUserId: string): Promise<UserConte
     goalsService.listActive(),
     projectsService.listActive(),
     contextService.listActive(),
-    eventsService.listUpcoming(24),
+    eventsService.listUpcoming(24 * daysAhead),
     weeklyTargetsService.getWeekProgress(weekStart),
-    googleCalendarClient.getEventsForRange(startOfDay, endOfDay),
+    googleCalendarClient.getEventsForRange(startOfDay, endOfRange),
     googleCalendarClient.getFreeBlocks(now),
   ])
 
