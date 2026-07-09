@@ -74,7 +74,7 @@ describe('Planner', () => {
     expect(mockAIProvider.chat).toHaveBeenCalledTimes(1)
     const chatArgs = mockAIProvider.chat.mock.calls[0][0]
     expect(chatArgs[0]).toEqual({ role: 'system', content: PLANNER_SYSTEM_PROMPT })
-    expect(chatArgs[2].content).toContain('resumo da semana passada')
+    expect(chatArgs[2].content).toContain('balanço semanal')
     expect(result).toBe('Briefing sugerido')
   })
 

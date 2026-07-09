@@ -30,8 +30,14 @@ export class Planner {
         { role: 'system', content: ctxBlock },
         {
           role: 'user',
-          content:
-            'Faça o resumo da semana passada e o plano da próxima semana, destacando o que travou e o que avançou.',
+          content: `Crie o balanço semanal e o plano da próxima semana baseando-se nas regras abaixo:
+
+1. Monte uma tabela Markdown clara mostrando as metas semanais do usuário por área de vida:
+   - Colunas: Área | Meta | Feito | Status
+   - Use emojis nas áreas e indicadores visuais no Status (ex: ✅ para cumprida, ⚠️ para faltou N, ❌ para zerada).
+2. Exiba uma nota geral do balanço (ex: "5/8 metas cumpridas (62.5%)") e celebre a consistência (lembre-se que 70% é excelente, nunca cobre 100% ou perfeição).
+3. Analise a agenda dos próximos dias/semana no Google Calendar para recomendar em quais dias alocar os blocos livres das metas que faltaram ou dos side projects.
+4. Caso haja reuniões ou dias com agenda pesada no calendário da próxima semana, recomende explicitamente não planejar nada complexo para a noite desses dias.`,
         },
       ],
       { temperature: 0.7 }
