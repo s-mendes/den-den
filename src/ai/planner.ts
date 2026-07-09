@@ -110,6 +110,17 @@ export class Planner {
       }
     }
 
+    if (ctx.weeklyProgress?.length) {
+      lines.push('\nMETAS SEMANAIS POR ÁREA:')
+      for (const wp of ctx.weeklyProgress) {
+        const pct = wp.targetCount > 0 ? Math.round((wp.completedCount / wp.targetCount) * 100) : 100
+        const notesStr = wp.notes ? ` (Notas: ${wp.notes})` : ''
+        lines.push(
+          `- [${wp.areaSlug.toUpperCase()}] ${wp.activity}: ${wp.completedCount}/${wp.targetCount} (${pct}%)${notesStr}`
+        )
+      }
+    }
+
     return lines.join('\n')
   }
 }
