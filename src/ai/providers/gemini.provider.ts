@@ -26,13 +26,38 @@ export class GeminiProvider implements AIProvider {
       },
     })
 
-    const history = conversationMessages.slice(0, -1).map((m) => ({
-      role: m.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: m.content }],
-    }))
-
     const lastMessage = conversationMessages[conversationMessages.length - 1]
     if (!lastMessage) throw new Error('Gemini: pelo menos uma mensagem user/assistant é necessária')
+
+    const rawHistory = conversationMessages.slice(0, -1).map((m) => ({
+      role: (m.role === 'assistant' ? 'model' : 'user') as 'user' | 'model',
+      content: m.content,
+    }))
+
+    // 1. Agrupar mensagens consecutivas do mesmo autor para garantir alternância
+    const collapsedHistory: Array<{ role: 'user' | 'model'; content: string }> = []
+    for (const msg of rawHistory) {
+      const lastCollapsed = collapsedHistory[collapsedHistory.length - 1]
+      if (lastCollapsed && lastCollapsed.role === msg.role) {
+        lastCollapsed.content += `\n${msg.content}`
+      } else {
+        collapsedHistory.push({ role: msg.role, content: msg.content })
+      }
+    }
+
+    // 2. Garantir que o histórico comece obrigatoriamente com 'user'
+    const firstUserIndex = collapsedHistory.findIndex((msg) => msg.role === 'user')
+    const finalHistory = firstUserIndex !== -1 ? collapsedHistory.slice(firstUserIndex) : []
+
+    // 3. Garantir que o histórico termine com 'model' para alternar com o último input que é 'user'
+    if (finalHistory.length > 0 && finalHistory[finalHistory.length - 1].role === 'user') {
+      finalHistory.pop()
+    }
+
+    const history = finalHistory.map((m) => ({
+      role: m.role,
+      parts: [{ text: m.content }],
+    }))
 
     const chat = model.startChat({ history })
     const result = await chat.sendMessage(lastMessage.content)
