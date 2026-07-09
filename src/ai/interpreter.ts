@@ -22,6 +22,13 @@ export interface UserContext {
   activeProjects?: Array<{ name: string; githubRepo?: string | null }>
   activeContext?: Array<{ description: string; endDate?: Date | null }>
   upcomingEvents?: Array<{ title: string; datetime: Date }>
+  weeklyProgress?: Array<{
+    areaSlug: string
+    activity: string
+    targetCount: number
+    completedCount: number
+    notes?: string | null
+  }>
 }
 
 export class Interpreter {
@@ -96,6 +103,14 @@ export class Interpreter {
       lines.push('\n-- PRÓXIMOS EVENTOS --')
       for (const e of ctx.upcomingEvents) {
         lines.push(`- ${formatDateTimeForPrompt(e.datetime)}: ${e.title}`)
+      }
+    }
+
+    if (ctx.weeklyProgress?.length) {
+      lines.push('\n-- METAS SEMANAIS POR ÁREA --')
+      for (const wp of ctx.weeklyProgress) {
+        const notesStr = wp.notes ? ` (${wp.notes})` : ''
+        lines.push(`- [${wp.areaSlug.toUpperCase()}] ${wp.activity}: ${wp.completedCount} / ${wp.targetCount}${notesStr}`)
       }
     }
 

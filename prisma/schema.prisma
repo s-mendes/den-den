@@ -28,16 +28,17 @@ enum AreaSlug {
 }
 
 model Area {
-  id          Int       @id @default(autoincrement())
-  slug        AreaSlug  @unique
-  name        String
-  description String?
-  emoji       String?
-  color       String?
-  createdAt   DateTime  @default(now())
+  id            Int            @id @default(autoincrement())
+  slug          AreaSlug       @unique
+  name          String
+  description   String?
+  emoji         String?
+  color         String?
+  createdAt     DateTime       @default(now())
 
-  projects    Project[]
-  goals       Goal[]
+  projects      Project[]
+  goals         Goal[]
+  weeklyTargets WeeklyTarget[]
 }
 
 model Event {
@@ -117,4 +118,34 @@ model ContextLog {
 
   @@index([active])
 }
+
+model WeeklyTarget {
+  id          Int           @id @default(autoincrement())
+  areaSlug    AreaSlug
+  area        Area          @relation(fields: [areaSlug], references: [slug])
+  activity    String
+  targetCount Int
+  active      Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  entries     WeeklyEntry[]
+
+  @@index([areaSlug])
+  @@index([active])
+}
+
+model WeeklyEntry {
+  id              Int          @id @default(autoincrement())
+  weeklyTargetId  Int
+  weeklyTarget    WeeklyTarget @relation(fields: [weeklyTargetId], references: [id], onDelete: Cascade)
+  weekStart       DateTime
+  completedCount  Int          @default(0)
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([weeklyTargetId, weekStart])
+  @@index([weekStart])
+}
+
 

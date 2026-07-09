@@ -4,15 +4,19 @@ import { goalsService } from '../services/goals.service'
 import { projectsService } from '../services/projects.service'
 import { contextService } from '../services/context.service'
 import { eventsService } from '../services/events.service'
+import { weeklyTargetsService, getCurrentWeekStart } from '../services/weekly-targets.service'
 
 export async function buildUserContext(discordUserId: string): Promise<UserContext> {
   const profile = await profileService.getOrCreate(discordUserId)
   const longTermGoals = await profileService.getLongTermGoals(discordUserId)
-  const [goals, projects, activeContext, upcoming] = await Promise.all([
+  const weekStart = getCurrentWeekStart()
+  
+  const [goals, projects, activeContext, upcoming, weeklyProgress] = await Promise.all([
     goalsService.listActive(),
     projectsService.listActive(),
     contextService.listActive(),
     eventsService.listUpcoming(24),
+    weeklyTargetsService.getWeekProgress(weekStart),
   ])
 
   return {
@@ -32,5 +36,12 @@ export async function buildUserContext(discordUserId: string): Promise<UserConte
     activeProjects: projects.map((p) => ({ name: p.name, githubRepo: p.githubRepo })),
     activeContext: activeContext.map((c) => ({ description: c.description, endDate: c.endDate })),
     upcomingEvents: upcoming.map((e) => ({ title: e.title, datetime: e.datetime })),
+    weeklyProgress: weeklyProgress.map((wp) => ({
+      areaSlug: wp.areaSlug,
+      activity: wp.activity,
+      targetCount: wp.targetCount,
+      completedCount: wp.completedCount,
+      notes: wp.notes,
+    })),
   }
 }
