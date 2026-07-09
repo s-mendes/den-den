@@ -54,13 +54,18 @@ export interface UserContext {
 export class Interpreter {
   constructor(private ai: AIProvider) {}
 
-  async interpret(message: string, context: UserContext): Promise<Intent> {
+  async interpret(
+    message: string,
+    context: UserContext,
+    history: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  ): Promise<Intent> {
     const contextBlock = this.buildContextBlock(context)
 
     const response = await this.ai.chat(
       [
         { role: 'system', content: INTERPRETER_SYSTEM_PROMPT },
         { role: 'system', content: contextBlock },
+        ...history,
         { role: 'user', content: message },
       ],
       { jsonMode: true, temperature: 0.4 }

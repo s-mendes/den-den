@@ -23,7 +23,19 @@ export function registerMessageCreate(client: Client, interpreter: Interpreter) 
         await message.channel.sendTyping()
       }
       const context = await buildUserContext(message.author.id)
-      const intent = await interpreter.interpret(content, context)
+
+      // Recupera as últimas 10 mensagens do canal para usar como memória de curto prazo
+      const channelMessages = await message.channel.messages.fetch({ limit: 10 })
+      const history = Array.from(channelMessages.values())
+        .filter((msg) => msg.id !== message.id) // ignora a mensagem atual
+        .reverse() // ordem cronológica (mais antigo primeiro)
+        .map((msg) => ({
+          role: msg.author.id === client.user?.id ? ('assistant' as const) : ('user' as const),
+          content: stripMention(msg.content, client.user?.id),
+        }))
+        .filter((msg) => msg.content.trim() !== '')
+
+      const intent = await interpreter.interpret(content, context, history)
       await applyIntent(intent, message.author.id)
       await message.reply(intent.response)
     } catch (err) {
