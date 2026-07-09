@@ -17,8 +17,8 @@ export class Scheduler {
     cron.schedule('0 8 * * *', () => this.morningBriefing().catch(console.error))
     cron.schedule('*/15 * * * *', () => this.eventReminders().catch(console.error))
     cron.schedule('30 21 * * *', () => this.nightlyCheck().catch(console.error))
-    cron.schedule('30 7 * * 1', () => this.weeklySummary().catch(console.error))
-    console.log('⏰ Scheduler ativo: bom dia 08h, lembretes a cada 15min, check 21h30, resumo seg 07:30')
+    cron.schedule('0 20 * * 0', () => this.weeklySummary().catch(console.error))
+    console.log('⏰ Scheduler ativo: bom dia 08h, lembretes a cada 15min, check 21h30, resumo dom 20h')
   }
 
   private async getTargetUser(): Promise<User | null> {

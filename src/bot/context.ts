@@ -7,6 +7,7 @@ import { eventsService } from '../services/events.service'
 import { weeklyTargetsService, getCurrentWeekStart } from '../services/weekly-targets.service'
 import { googleCalendarClient } from '../calendar/google-calendar'
 import { analyzeDayEvents } from '../calendar/parser'
+import { weeklyScoreService } from '../services/weekly-score.service'
 
 export async function buildUserContext(discordUserId: string, daysAhead: number = 1): Promise<UserContext> {
   const profile = await profileService.getOrCreate(discordUserId)
@@ -28,6 +29,8 @@ export async function buildUserContext(discordUserId: string, daysAhead: number 
     weeklyProgress,
     calendarEvents,
     freeBlocks,
+    weeklyScore,
+    weeklyStreak,
   ] = await Promise.all([
     goalsService.listActive(),
     projectsService.listActive(),
@@ -36,6 +39,8 @@ export async function buildUserContext(discordUserId: string, daysAhead: number 
     weeklyTargetsService.getWeekProgress(weekStart),
     googleCalendarClient.getEventsForRange(startOfDay, endOfRange),
     googleCalendarClient.getFreeBlocks(now),
+    weeklyScoreService.calculateWeekScore(weekStart),
+    weeklyScoreService.getStreak(now),
   ])
 
   const dayAnalysis = analyzeDayEvents(now, calendarEvents)
@@ -84,5 +89,11 @@ export async function buildUserContext(discordUserId: string, daysAhead: number 
       hasPersonalTime: dayAnalysis.hasPersonalTime,
       totalDurationMinutes: dayAnalysis.totalDurationMinutes,
     },
+    weeklyScore: {
+      score: weeklyScore.score,
+      completed: weeklyScore.completed,
+      total: weeklyScore.total,
+    },
+    weeklyStreak,
   }
 }
