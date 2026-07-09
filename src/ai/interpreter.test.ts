@@ -62,4 +62,30 @@ describe('Interpreter.interpret', () => {
       expect.objectContaining({ jsonMode: true })
     )
   })
+
+  it('interpreta relatos de check-in noturno como nightly_checkin intent', async () => {
+    const raw = JSON.stringify({
+      type: 'nightly_checkin',
+      data: {
+        activities: [
+          { areaSlug: 'business', description: 'Programar o Zestify', durationMinutes: 90 },
+          { areaSlug: 'health', description: 'Treinar perna', durationMinutes: 60 },
+        ],
+        overallMood: 'productive',
+      },
+      response: 'Massa! Meta registrada.',
+    })
+
+    const interpreter = new Interpreter(makeProvider([raw]))
+    const intent = await interpreter.interpret('Hoje fiz 1h30 no Zestify e treinei 1h', baseContext)
+
+    expect(intent.type).toBe('nightly_checkin')
+    expect(intent.response).toBe('Massa! Meta registrada.')
+    if (intent.type === 'nightly_checkin') {
+      expect(intent.data.activities).toHaveLength(2)
+      expect(intent.data.activities[0].areaSlug).toBe('business')
+      expect(intent.data.activities[1].description).toBe('Treinar perna')
+      expect(intent.data.overallMood).toBe('productive')
+    }
+  })
 })

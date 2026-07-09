@@ -104,6 +104,21 @@ export const chitchatIntent = z.object({
   ...baseResponse,
 })
 
+export const nightlyCheckinIntent = z.object({
+  type: z.literal('nightly_checkin'),
+  data: z.object({
+    activities: z.array(
+      z.object({
+        areaSlug: z.enum(['work', 'business', 'content', 'health', 'personal', 'study']),
+        description: z.string().min(1),
+        durationMinutes: z.number().optional(),
+      })
+    ),
+    overallMood: z.enum(['productive', 'rest', 'mixed', 'tough']).optional(),
+  }),
+  ...baseResponse,
+})
+
 export const intentSchema = z.discriminatedUnion('type', [
   createEventIntent,
   createGoalIntent,
@@ -114,6 +129,7 @@ export const intentSchema = z.discriminatedUnion('type', [
   queryIntent,
   delayTasksIntent,
   chitchatIntent,
+  nightlyCheckinIntent,
 ])
 
 export type Intent = z.infer<typeof intentSchema>

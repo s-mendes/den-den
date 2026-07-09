@@ -16,9 +16,9 @@ export class Scheduler {
   start() {
     cron.schedule('0 8 * * *', () => this.morningBriefing().catch(console.error))
     cron.schedule('*/15 * * * *', () => this.eventReminders().catch(console.error))
-    cron.schedule('0 21 * * *', () => this.nightlyCheck().catch(console.error))
+    cron.schedule('30 21 * * *', () => this.nightlyCheck().catch(console.error))
     cron.schedule('30 7 * * 1', () => this.weeklySummary().catch(console.error))
-    console.log('⏰ Scheduler ativo: bom dia 08h, lembretes a cada 15min, check 21h, resumo seg 07:30')
+    console.log('⏰ Scheduler ativo: bom dia 08h, lembretes a cada 15min, check 21h30, resumo seg 07:30')
   }
 
   private async getTargetUser(): Promise<User | null> {
@@ -61,10 +61,13 @@ export class Scheduler {
   }
 
   async nightlyCheck() {
-    const context = await buildUserContext(this.targetUserId)
-    const commitsToday = await this.countCommitsToday()
-    const message = await this.planner.nightlyCheck(context, commitsToday)
-    await this.dm(`🌙 **Check da noite**\n\n${message}`)
+    await this.dm(
+      `🌙 **Como foi hoje?** Me conta o que rolou nas suas metas ou side projects (pode escrever em linguagem natural).\n\n` +
+      `Exemplos:\n` +
+      `- *"Treinei hoje e gravei um vídeo pro canal"* \n` +
+      `- *"Fiz 2h de desenvolvimento no Zestify"* \n` +
+      `- *"Hoje o dia na Macle foi pesado, só trabalhei e descansei"*`
+    )
   }
 
   async weeklySummary() {

@@ -171,4 +171,52 @@ describe('weeklyTargetsService', () => {
       expect(result.items[1].percentage).toBe(33)
     })
   })
+
+  describe('logActivity', () => {
+    it('deve retornar null se não houver metas ativas para a área', async () => {
+      vi.mocked(prisma.weeklyTarget.findMany).mockResolvedValue([])
+
+      const result = await weeklyTargetsService.logActivity(AreaSlug.health, 'Fiz um treino de costas')
+      expect(result).toBeNull()
+      expect(prisma.weeklyEntry.upsert).not.toHaveBeenCalled()
+    })
+
+    it('deve incrementar a primeira meta se houver apenas uma cadastrada na área', async () => {
+      const mockTargets = [{ id: 42, areaSlug: AreaSlug.health, activity: 'Ir na academia', targetCount: 3 }]
+      vi.mocked(prisma.weeklyTarget.findMany).mockResolvedValue(mockTargets as any)
+
+      await weeklyTargetsService.logActivity(AreaSlug.health, 'Qualquer atividade aleatória')
+
+      expect(prisma.weeklyEntry.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            weeklyTargetId: 42,
+            completedCount: 1,
+            notes: 'Qualquer atividade aleatória',
+          }),
+        })
+      )
+    })
+
+    it('deve escolher a melhor meta aproximada textualmente se houver múltiplas', async () => {
+      const mockTargets = [
+        { id: 10, areaSlug: AreaSlug.business, activity: 'Estudar Zestify', targetCount: 2 },
+        { id: 20, areaSlug: AreaSlug.business, activity: 'Programar Excursa', targetCount: 1 },
+      ]
+      vi.mocked(prisma.weeklyTarget.findMany).mockResolvedValue(mockTargets as any)
+
+      // "Fiz 1h de deploy no Excursa" deve bater com "Programar Excursa"
+      await weeklyTargetsService.logActivity(AreaSlug.business, 'Fiz 1h de deploy no Excursa')
+
+      expect(prisma.weeklyEntry.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            weeklyTargetId: 20,
+            notes: 'Fiz 1h de deploy no Excursa',
+          }),
+        })
+      )
+    })
+  })
 })
+

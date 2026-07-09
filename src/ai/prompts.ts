@@ -24,7 +24,7 @@ TAREFA: Interprete a mensagem do usuário e retorne APENAS um JSON válido — s
 
 Estrutura obrigatória do JSON:
 {
-  "type": "create_event" | "create_goal" | "log_progress" | "update_profile" | "set_context" | "create_project" | "query" | "delay_tasks" | "chitchat",
+  "type": "create_event" | "create_goal" | "log_progress" | "update_profile" | "set_context" | "create_project" | "query" | "delay_tasks" | "chitchat" | "nightly_checkin",
   "data": { ... campos extraídos ... },
   "response": "resposta natural ao usuário, warm e quando fizer sentido motivadora"
 }
@@ -64,6 +64,10 @@ Regras por tipo:
 
 9. chitchat — conversa geral sem ação definida
    data: {}
+
+10. nightly_checkin — resposta ao check-in noturno detalhando o que rolou no dia
+    data: { activities: Array<{ areaSlug, description, durationMinutes? }>, overallMood? ("productive"|"rest"|"mixed"|"tough") }
+    Regra para nightly_checkin: Classifique cada atividade relatada na área correspondente e estime a duração se mencionada. Defina overallMood de acordo com o tom do relato.
 
 IMPORTANTE:
 - Para datas relativas ("amanhã", "próxima terça"), converta para ISO absoluto usando a data atual que será injetada no contexto
