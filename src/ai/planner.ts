@@ -69,13 +69,31 @@ export class Planner {
         lines.push(`Sonhos: ${p.longTermGoals.join('; ')}`)
     }
 
-    if (ctx.upcomingEvents?.length) {
-      lines.push('\nAGENDA:')
-      for (const e of ctx.upcomingEvents) {
-        lines.push(`- ${formatDateTimeForPrompt(e.datetime)}: ${e.title}`)
+    if (ctx.calendarEvents?.length) {
+      lines.push('\nAGENDA DO DIA (Google Calendar):')
+      for (const ce of ctx.calendarEvents) {
+        const startStr = ce.start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        const endStr = ce.end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        const allDayStr = ce.isAllDay ? '[Dia Inteiro]' : `[${startStr} - ${endStr}]`
+        lines.push(`- ${allDayStr} - ${ce.title}${ce.location ? ` (${ce.location})` : ''}`)
       }
     } else {
-      lines.push('\nAGENDA: sem eventos nas próximas horas.')
+      lines.push('\nAGENDA DO DIA: Sem eventos agendados hoje.')
+    }
+
+    if (ctx.freeBlocks?.length) {
+      lines.push('\nBLOCOS LIVRES OPERACIONAIS:')
+      for (const fb of ctx.freeBlocks) {
+        const startStr = fb.start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        const endStr = fb.end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        lines.push(`- ${startStr} às ${endStr} (${fb.durationMinutes} minutos livres)`)
+      }
+    }
+
+    if (ctx.dayAnalysis) {
+      lines.push('\nANÁLISE DE CARGA DO DIA:')
+      lines.push(`- Dia pesado de trabalho fixo (>8h)? ${ctx.dayAnalysis.isHeavyWorkDay ? 'SIM' : 'NÃO'}`)
+      lines.push(`- Teve atividade física/treino hoje? ${ctx.dayAnalysis.hasWorkout ? 'SIM' : 'NÃO'}`)
     }
 
     if (ctx.activeGoals?.length) {
