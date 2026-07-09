@@ -29,6 +29,26 @@ export interface UserContext {
     completedCount: number
     notes?: string | null
   }>
+  calendarEvents?: Array<{
+    id: string
+    title: string
+    start: Date
+    end: Date
+    isAllDay: boolean
+    location?: string | null
+    description?: string | null
+  }>
+  freeBlocks?: Array<{
+    start: Date
+    end: Date
+    durationMinutes: number
+  }>
+  dayAnalysis?: {
+    isHeavyWorkDay: boolean
+    hasWorkout: boolean
+    hasPersonalTime: boolean
+    totalDurationMinutes: number
+  }
 }
 
 export class Interpreter {
