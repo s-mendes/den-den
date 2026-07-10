@@ -3,6 +3,7 @@ import { Planner } from '../../ai/planner'
 import { buildUserContext } from '../context'
 import { projectsService } from '../../services/projects.service'
 import { getGitHubClient } from '../../github/client'
+import { editReplyInChunks } from '../split-message'
 
 export const data = new SlashCommandBuilder()
   .setName('today')
@@ -16,7 +17,7 @@ export function createExecute(planner: Planner) {
     const staleProjects = await findStaleProjects()
 
     const briefing = await planner.today(context, { staleProjects })
-    await interaction.editReply(briefing)
+    await editReplyInChunks(interaction, briefing)
   }
 }
 

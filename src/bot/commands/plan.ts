@@ -1,6 +1,7 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from 'discord.js'
 import { Planner } from '../../ai/planner'
 import { buildUserContext } from '../context'
+import { editReplyInChunks } from '../split-message'
 
 export const data = new SlashCommandBuilder()
   .setName('plan')
@@ -11,6 +12,6 @@ export function createExecute(planner: Planner) {
     await interaction.deferReply()
     const context = await buildUserContext(interaction.user.id, 7)
     const plan = await planner.weekly(context)
-    await interaction.editReply(plan)
+    await editReplyInChunks(interaction, plan)
   }
 }

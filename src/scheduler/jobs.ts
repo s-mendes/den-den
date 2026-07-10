@@ -6,6 +6,7 @@ import { eventsService } from '../services/events.service'
 import { projectsService } from '../services/projects.service'
 import { getGitHubClient } from '../github/client'
 import { formatTimeForPrompt } from '../ai/time'
+import { splitDiscordMessage } from '../bot/split-message'
 
 export class Scheduler {
   constructor(
@@ -35,7 +36,9 @@ export class Scheduler {
     const user = await this.getTargetUser()
     if (!user) return
     try {
-      await user.send(content)
+      for (const chunk of splitDiscordMessage(content)) {
+        await user.send(chunk)
+      }
     } catch (err) {
       console.error('Não consegui enviar DM:', err)
     }
