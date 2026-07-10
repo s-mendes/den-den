@@ -9,7 +9,7 @@ import { getGitHubClient } from '../github/client'
 import { Intent, UserContext } from '../ai/interpreter'
 
 vi.mock('../services/events.service', () => ({
-  eventsService: { delayAll: vi.fn().mockResolvedValue([]) },
+  eventsService: { delayAll: vi.fn().mockResolvedValue([]), listToday: vi.fn().mockResolvedValue([]) },
 }))
 vi.mock('../services/projects.service', () => ({
   projectsService: { findByName: vi.fn() },
@@ -23,7 +23,11 @@ vi.mock('../services/goals.service', () => ({
   },
 }))
 vi.mock('../services/weekly-targets.service', () => ({
-  weeklyTargetsService: { logActivity: vi.fn() },
+  weeklyTargetsService: {
+    logActivity: vi.fn(),
+    getWeekProgress: vi.fn().mockResolvedValue([]),
+  },
+  getCurrentWeekStart: vi.fn(() => new Date('2026-07-06T00:00:00Z')),
 }))
 vi.mock('../services/tasks.service', () => ({
   tasksService: {
@@ -309,5 +313,73 @@ describe('applyIntent — passthrough', () => {
     const result = await applyIntent({ type: 'chitchat', data: {}, response: 'oi' } as Intent, 'u1', ctx)
 
     expect(result).toEqual({ status: 'ok' })
+  })
+})
+
+describe('applyIntent — query', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function queryIntent(topic: string): Intent {
+    return { type: 'query', data: { topic }, response: 'vou verificar!' } as Intent
+  }
+
+  it('topic goals responde com metas reais do banco — nunca o texto do LLM', async () => {
+    vi.mocked(goalsService.listActive).mockResolvedValue([
+      { title: 'Ler 10 livros', currentValue: 8, targetValue: 10, unit: 'livros' },
+    ] as Awaited<ReturnType<typeof goalsService.listActive>>)
+    vi.mocked(weeklyTargetsService.getWeekProgress).mockResolvedValue([
+      { areaSlug: 'health', activity: 'Treinar', completedCount: 1, targetCount: 3 },
+    ] as Awaited<ReturnType<typeof weeklyTargetsService.getWeekProgress>>)
+
+    const result = await applyIntent(queryIntent('goals'), 'u1', ctx)
+
+    expect(result.status).toBe('ok')
+    expect(result.reply).toContain('Ler 10 livros')
+    expect(result.reply).toContain('Treinar: 1/3')
+    expect(result.reply).not.toBe('vou verificar!')
+  })
+
+  it('topic goals com banco vazio responde mensagem amigável, não silêncio', async () => {
+    vi.mocked(goalsService.listActive).mockResolvedValue([])
+    vi.mocked(weeklyTargetsService.getWeekProgress).mockResolvedValue([])
+
+    const result = await applyIntent(queryIntent('goals'), 'u1', ctx)
+
+    expect(result.status).toBe('ok')
+    expect(result.reply).toMatch(/nenhuma meta ativa/i)
+  })
+
+  it('topic today usa agenda do contexto e avisa se o calendar falhou', async () => {
+    const errorCtx = {
+      ...ctx,
+      calendarStatus: 'error',
+      calendarEvents: [],
+    } as UserContext
+    vi.mocked(tasksService.listOpenForDate).mockResolvedValue([
+      { title: 'Ajustar cupom do checkout' },
+    ] as Awaited<ReturnType<typeof tasksService.listOpenForDate>>)
+
+    const result = await applyIntent(queryIntent('today'), 'u1', errorCtx)
+
+    expect(result.status).toBe('ok')
+    expect(result.reply).toMatch(/não consegui acessar.*calendar/i)
+    expect(result.reply).toContain('Ajustar cupom do checkout')
+  })
+
+  it('topic free lista os blocos livres do contexto', async () => {
+    const freeCtx = {
+      ...ctx,
+      calendarStatus: 'ok',
+      freeBlocks: [
+        { start: new Date('2026-07-10T20:00:00Z'), end: new Date('2026-07-10T22:00:00Z'), durationMinutes: 120 },
+      ],
+    } as UserContext
+
+    const result = await applyIntent(queryIntent('free'), 'u1', freeCtx)
+
+    expect(result.status).toBe('ok')
+    expect(result.reply).toContain('120 minutos')
   })
 })

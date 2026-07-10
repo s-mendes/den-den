@@ -8,6 +8,12 @@ import {
   projectNotFound,
   projectWithoutGithub,
   nightlyNothingLogged,
+  formatGoalsQuery,
+  formatTodayQuery,
+  formatWeekQuery,
+  formatProjectsQuery,
+  formatProfileQuery,
+  formatFreeQuery,
 } from './replies'
 
 describe('replies — templates determinísticos de falha', () => {
@@ -108,6 +114,120 @@ describe('replies — templates determinísticos de falha', () => {
       const reply = nightlyNothingLogged()
 
       expect(reply).toMatch(/meta semanal/i)
+    })
+  })
+})
+
+describe('replies — formatters de query com dados reais', () => {
+  describe('formatGoalsQuery', () => {
+    it('mostra metas ativas e metas semanais em seções separadas', () => {
+      const reply = formatGoalsQuery(
+        [{ title: 'Ler 10 livros', currentValue: 8, targetValue: 10, unit: 'livros' }],
+        [{ areaSlug: 'health', activity: 'Treinar', completedCount: 1, targetCount: 3 }]
+      )
+
+      expect(reply).toContain('Metas ativas')
+      expect(reply).toContain('Ler 10 livros: 8/10 livros')
+      expect(reply).toContain('Metas semanais')
+      expect(reply).toContain('Treinar: 1/3')
+    })
+
+    it('nunca responde silêncio: listas vazias têm mensagem amigável', () => {
+      const reply = formatGoalsQuery([], [])
+
+      expect(reply).toMatch(/nenhuma meta ativa/i)
+      expect(reply).toMatch(/nenhuma meta semanal/i)
+    })
+  })
+
+  describe('formatTodayQuery', () => {
+    it('mostra agenda, eventos e tarefas pendentes', () => {
+      const reply = formatTodayQuery({
+        calendarStatus: 'ok',
+        calendarEvents: [
+          {
+            title: 'Daily Macle',
+            start: new Date('2026-07-10T12:00:00Z'),
+            end: new Date('2026-07-10T12:30:00Z'),
+            isAllDay: false,
+          },
+        ],
+        dbEvents: [{ title: 'Consulta médica', datetime: new Date('2026-07-10T18:00:00Z') }],
+        tasks: [{ title: 'Ajustar cupom do checkout' }],
+      })
+
+      expect(reply).toContain('Daily Macle')
+      expect(reply).toContain('Consulta médica')
+      expect(reply).toContain('Ajustar cupom do checkout')
+    })
+
+    it('avisa quando o calendar está indisponível — não finge dia livre', () => {
+      const reply = formatTodayQuery({
+        calendarStatus: 'error',
+        calendarEvents: [],
+        dbEvents: [],
+        tasks: [],
+      })
+
+      expect(reply).toMatch(/não consegui acessar.*calendar/i)
+      expect(reply).not.toMatch(/sem eventos no calendário/i)
+    })
+  })
+
+  describe('formatWeekQuery', () => {
+    it('mostra progresso por área com score e streak', () => {
+      const reply = formatWeekQuery(
+        [{ areaSlug: 'health', activity: 'Treinar', completedCount: 1, targetCount: 3 }],
+        { score: 40, completed: 2, total: 5 },
+        3
+      )
+
+      expect(reply).toContain('Treinar: 1/3')
+      expect(reply).toContain('2/5 (40%)')
+      expect(reply).toContain('3 semana')
+    })
+  })
+
+  describe('formatProjectsQuery', () => {
+    it('lista projetos ativos com repo', () => {
+      const reply = formatProjectsQuery([{ name: 'Zestify', githubRepo: 'sam/zestify' }])
+
+      expect(reply).toContain('Zestify')
+      expect(reply).toContain('sam/zestify')
+    })
+
+    it('lista vazia tem mensagem amigável', () => {
+      expect(formatProjectsQuery([])).toMatch(/nenhum projeto/i)
+    })
+  })
+
+  describe('formatProfileQuery', () => {
+    it('mostra perfil e sonhos de longo prazo', () => {
+      const reply = formatProfileQuery(
+        { name: 'Samuel', currentEmployer: 'Macle', currentRole: 'Dev' },
+        ['Viver de side projects']
+      )
+
+      expect(reply).toContain('Samuel')
+      expect(reply).toContain('Macle')
+      expect(reply).toContain('Viver de side projects')
+    })
+  })
+
+  describe('formatFreeQuery', () => {
+    it('lista blocos livres', () => {
+      const reply = formatFreeQuery(
+        [{ start: new Date('2026-07-10T20:00:00Z'), end: new Date('2026-07-10T22:00:00Z'), durationMinutes: 120 }],
+        'ok'
+      )
+
+      expect(reply).toContain('120 minutos')
+    })
+
+    it('avisa quando o calendar está indisponível', () => {
+      const reply = formatFreeQuery([], 'error')
+
+      expect(reply).toMatch(/não consegui acessar.*calendar/i)
     })
   })
 })

@@ -4,7 +4,7 @@ import { goalsService } from '../services/goals.service'
 import { projectsService } from '../services/projects.service'
 import { profileService } from '../services/profile.service'
 import { contextService } from '../services/context.service'
-import { weeklyTargetsService } from '../services/weekly-targets.service'
+import { weeklyTargetsService, getCurrentWeekStart } from '../services/weekly-targets.service'
 import { delayTasks } from './delay-actions'
 import { tasksService } from '../services/tasks.service'
 import {
@@ -16,6 +16,12 @@ import {
   projectNotFound,
   projectWithoutGithub,
   nightlyNothingLogged,
+  formatGoalsQuery,
+  formatTodayQuery,
+  formatWeekQuery,
+  formatProjectsQuery,
+  formatProfileQuery,
+  formatFreeQuery,
 } from './replies'
 import { AreaSlug } from '@prisma/client'
 
@@ -30,7 +36,7 @@ const OK: IntentResult = { status: 'ok' }
 export async function applyIntent(
   intent: Intent,
   discordUserId: string,
-  _context: UserContext
+  context: UserContext
 ): Promise<IntentResult> {
   switch (intent.type) {
     case 'create_event':
@@ -141,8 +147,60 @@ export async function applyIntent(
       return OK
     }
 
+    // A resposta de query é 100% determinística: montada com dados reais do
+    // banco/contexto, nunca com o texto especulativo do LLM.
     case 'query':
+      return { status: 'ok', reply: await answerQuery(intent.data.topic, discordUserId, context) }
+
     case 'chitchat':
       return OK
+  }
+}
+
+async function answerQuery(
+  topic: 'today' | 'week' | 'goals' | 'projects' | 'profile' | 'free',
+  discordUserId: string,
+  context: UserContext
+): Promise<string> {
+  switch (topic) {
+    case 'goals': {
+      const [goals, weekly] = await Promise.all([
+        goalsService.listActive(),
+        weeklyTargetsService.getWeekProgress(getCurrentWeekStart()),
+      ])
+      return formatGoalsQuery(goals, weekly)
+    }
+
+    case 'today': {
+      const [dbEvents, tasks] = await Promise.all([
+        eventsService.listToday(),
+        tasksService.listOpenForDate(),
+      ])
+      return formatTodayQuery({
+        calendarStatus: context.calendarStatus,
+        calendarEvents: context.calendarEvents ?? [],
+        dbEvents,
+        tasks,
+      })
+    }
+
+    case 'week': {
+      const weekly = await weeklyTargetsService.getWeekProgress(getCurrentWeekStart())
+      return formatWeekQuery(weekly, context.weeklyScore, context.weeklyStreak)
+    }
+
+    case 'projects':
+      return formatProjectsQuery(await projectsService.listActive())
+
+    case 'profile': {
+      const [profile, longTermGoals] = await Promise.all([
+        profileService.getOrCreate(discordUserId),
+        profileService.getLongTermGoals(discordUserId),
+      ])
+      return formatProfileQuery(profile, longTermGoals)
+    }
+
+    case 'free':
+      return formatFreeQuery(context.freeBlocks ?? [], context.calendarStatus)
   }
 }
