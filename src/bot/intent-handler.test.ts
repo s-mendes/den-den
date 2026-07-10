@@ -209,6 +209,9 @@ describe('applyIntent — complete_goal', () => {
       id: 5,
       title: 'Finalizar issue #86',
     } as Awaited<ReturnType<typeof tasksService.findOpenByTitle>>)
+    vi.mocked(tasksService.listOpenForDate).mockResolvedValue([
+      { title: 'Gravar gameplay', areaSlug: 'content' },
+    ] as Awaited<ReturnType<typeof tasksService.listOpenForDate>>)
 
     const result = await applyIntent(completeIntent('issue #86'), 'u1', ctx)
 
@@ -216,6 +219,22 @@ describe('applyIntent — complete_goal', () => {
     expect(goalsService.complete).not.toHaveBeenCalled()
     expect(result.status).toBe('ok')
     expect(result.reply).toContain('Finalizar issue #86')
+  })
+
+  it('conclusão de tarefa expõe o estado pós-ação para reflexão (tarefas restantes)', async () => {
+    vi.mocked(tasksService.findOpenByTitle).mockResolvedValue({
+      id: 5,
+      title: 'Gravar gameplay',
+    } as Awaited<ReturnType<typeof tasksService.findOpenByTitle>>)
+    vi.mocked(tasksService.listOpenForDate).mockResolvedValue([
+      { title: 'Corrigir bug do checkout', areaSlug: 'work' },
+    ] as Awaited<ReturnType<typeof tasksService.listOpenForDate>>)
+
+    const result = await applyIntent(completeIntent('gameplay'), 'u1', ctx)
+
+    expect(result.status).toBe('ok')
+    if (result.status !== 'ok') return
+    expect(result.reflection?.facts).toContain('Corrigir bug do checkout')
   })
 
   it('com kind "task", não cai em metas quando a tarefa não é encontrada', async () => {
@@ -270,6 +289,28 @@ describe('applyIntent — create_task', () => {
     expect(result.status).toBe('ok')
     expect(result.reply).toContain('Ajustar cupom do checkout')
   })
+
+  it('expõe as tarefas do dia como estado pós-ação para reflexão', async () => {
+    vi.mocked(tasksService.create).mockResolvedValue({
+      id: 1,
+      title: 'Ajustar cupom do checkout',
+      areaSlug: 'work',
+    } as Awaited<ReturnType<typeof tasksService.create>>)
+    vi.mocked(tasksService.listOpenForDate).mockResolvedValue([
+      { title: 'Ajustar cupom do checkout', areaSlug: 'work' },
+      { title: 'Gravar gameplay', areaSlug: 'content' },
+    ] as Awaited<ReturnType<typeof tasksService.listOpenForDate>>)
+
+    const result = await applyIntent(
+      { type: 'create_task', data: { title: 'Ajustar cupom do checkout' }, response: 'ok' } as Intent,
+      'u1',
+      ctx
+    )
+
+    expect(result.status).toBe('ok')
+    if (result.status !== 'ok') return
+    expect(result.reflection?.facts).toContain('Gravar gameplay')
+  })
 })
 
 describe('applyIntent — nightly_checkin', () => {
@@ -281,10 +322,13 @@ describe('applyIntent — nightly_checkin', () => {
     return { type: 'nightly_checkin', data: { activities }, response: 'ok' } as Intent
   }
 
-  it('retorna ok quando ao menos uma atividade é registrada', async () => {
+  it('retorna ok com fato determinístico e progresso semanal como estado pós-ação', async () => {
     vi.mocked(weeklyTargetsService.logActivity)
       .mockResolvedValueOnce(null)
       .mockResolvedValueOnce({ id: 1 } as Awaited<ReturnType<typeof weeklyTargetsService.logActivity>>)
+    vi.mocked(weeklyTargetsService.getWeekProgress).mockResolvedValue([
+      { areaSlug: 'study', activity: 'Ler', completedCount: 2, targetCount: 3 },
+    ] as Awaited<ReturnType<typeof weeklyTargetsService.getWeekProgress>>)
 
     const result = await applyIntent(
       checkinIntent([
@@ -296,6 +340,9 @@ describe('applyIntent — nightly_checkin', () => {
     )
 
     expect(result.status).toBe('ok')
+    if (result.status !== 'ok') return
+    expect(result.reply).toMatch(/registr/i)
+    expect(result.reflection?.facts).toContain('Ler: 2/3')
   })
 
   it('retorna erro quando nenhuma atividade casa com metas semanais', async () => {
@@ -366,6 +413,60 @@ describe('applyIntent — query', () => {
     expect(result.status).toBe('ok')
     expect(result.reply).toMatch(/não consegui acessar.*calendar/i)
     expect(result.reply).toContain('Ajustar cupom do checkout')
+  })
+
+  it('topic tasks com areaSlug retorna só as tarefas daquela área', async () => {
+    vi.mocked(tasksService.listOpenForDate).mockResolvedValue([
+      { title: 'Corrigir bug do checkout', areaSlug: 'work', projectId: null },
+      { title: 'Gravar gameplay', areaSlug: 'content', projectId: null },
+    ] as Awaited<ReturnType<typeof tasksService.listOpenForDate>>)
+
+    const result = await applyIntent(
+      { type: 'query', data: { topic: 'tasks', areaSlug: 'work' }, response: 'ok' } as Intent,
+      'u1',
+      ctx
+    )
+
+    expect(result.status).toBe('ok')
+    expect(result.reply).toContain('Corrigir bug do checkout')
+    expect(result.reply).not.toContain('Gravar gameplay')
+  })
+
+  it('topic tasks com projectName resolve o projeto e filtra por projectId', async () => {
+    vi.mocked(projectsService.findByName).mockResolvedValue({
+      id: 42,
+      name: 'Zestify',
+    } as Awaited<ReturnType<typeof projectsService.findByName>>)
+    vi.mocked(tasksService.listOpenForDate).mockResolvedValue([
+      { title: 'Relatórios do painel', areaSlug: 'business', projectId: 42 },
+      { title: 'Gravar gameplay', areaSlug: 'content', projectId: null },
+    ] as Awaited<ReturnType<typeof tasksService.listOpenForDate>>)
+
+    const result = await applyIntent(
+      { type: 'query', data: { topic: 'tasks', projectName: 'Zestify' }, response: 'ok' } as Intent,
+      'u1',
+      ctx
+    )
+
+    expect(projectsService.findByName).toHaveBeenCalledWith('Zestify')
+    expect(result.reply).toContain('Relatórios do painel')
+    expect(result.reply).not.toContain('Gravar gameplay')
+  })
+
+  it('topic tasks sem filtro lista todas as pendentes de hoje', async () => {
+    vi.mocked(tasksService.listOpenForDate).mockResolvedValue([
+      { title: 'Corrigir bug do checkout', areaSlug: 'work', projectId: null },
+      { title: 'Gravar gameplay', areaSlug: 'content', projectId: null },
+    ] as Awaited<ReturnType<typeof tasksService.listOpenForDate>>)
+
+    const result = await applyIntent(
+      { type: 'query', data: { topic: 'tasks' }, response: 'ok' } as Intent,
+      'u1',
+      ctx
+    )
+
+    expect(result.reply).toContain('Corrigir bug do checkout')
+    expect(result.reply).toContain('Gravar gameplay')
   })
 
   it('topic free lista os blocos livres do contexto', async () => {

@@ -56,9 +56,10 @@ Regras por tipo:
 6. create_project — side project ou projeto principal
    data: { name, description?, areaSlug (work|business|content|health|personal|study), githubRepo? (owner/repo), priority? (1-5) }
 
-7. query — usuário quer consultar algo (agenda, metas, projetos)
-   data: { topic: "today"|"week"|"goals"|"projects"|"profile"|"free" }
-   Exemplos de gatilho: "metas" / "minhas metas" → goals; "o que tenho hoje?" / "agenda" → today; "como tá minha semana?" → week; "meus projetos" → projects; "tenho tempo livre?" → free.
+7. query — usuário quer consultar algo (agenda, metas, projetos, tarefas)
+   data: { topic: "today"|"week"|"goals"|"projects"|"profile"|"free"|"tasks", areaSlug?, projectName? }
+   Exemplos de gatilho: "metas" / "minhas metas" → goals; "o que tenho hoje?" / "agenda" → today; "como tá minha semana?" → week; "meus projetos" → projects; "tenho tempo livre?" → free; "quais tarefas..." / "o que falta fazer" → tasks.
+   Filtros do topic tasks: se o usuário citar uma área ou algo que mapeia pra ela, extraia areaSlug (ex: "quais tarefas para macle sistemas?" → { topic: "tasks", areaSlug: "work" }; "tarefas do canal" → { topic: "tasks", areaSlug: "content" }). Se citar um projeto cadastrado (bloco PROJETOS ATIVOS), extraia projectName.
    Para query, a response será SUBSTITUÍDA por uma listagem montada com dados reais do banco — escreva uma response curta e neutra (ex: "Aqui vão suas metas!").
 
 8. delay_tasks — empurrar eventos/tarefas pra frente
@@ -87,6 +88,29 @@ IMPORTANTE:
 - Se faltar informação essencial ou se o usuário pedir para atualizar múltiplas metas/projetos simultaneamente (o que não é suportado pelo schema individual de ação direta), ou responder com confirmações/respostas curtas ambíguas (como "sim", "pode", "marcar 100%"), use o tipo "chitchat" com uma resposta orientadora perguntando qual meta/projeto ele deseja alterar primeiro.
 - Reconheça no tom da mensagem se o usuário está estressado, cansado ou sobrecarregado. Se detectar exaustão, responda de forma acolhedora, empática e evite sugerir novas tarefas.
 - A response deve ser natural, na mesma língua que o usuário usou`
+
+export const QUERY_ANALYST_PROMPT = `${DEN_DEN_SYSTEM_PROMPT}
+
+TAREFA: O usuário fez uma consulta e o sistema JÁ BUSCOU os dados reais no banco (você os recebe junto da pergunta). Escreva uma análise curta (2-5 frases) sobre esses dados — a listagem factual será anexada automaticamente após o seu texto, então NÃO a repita.
+
+Regras da análise:
+1. Responda diretamente a pergunta do usuário usando os dados.
+2. CONSCIÊNCIA DE HORÁRIO: o contexto traz a hora atual e a agenda do dia com horários e descrições. Identifique o bloco da agenda em curso AGORA e sugira apenas o que pertence a ele (ex: 14h dentro do bloco "Macle Sistemas" → tarefas de trabalho). Distribua o restante pelos próximos blocos do dia, casando a área de cada tarefa com o propósito/descrição de cada bloco (ex: tarefa de negócios → bloco "Zestify" da noite).
+3. A tarefa de cada bloco deve estar decidida ANTES do bloco começar — nada de "decida na hora". Seja específico: diga qual tarefa vai em qual horário.
+4. Aplique as regras anti-burnout: dia >8h de trabalho, treino atrasado há 3+ dias, o que IGNORAR hoje.
+5. NUNCA cite tarefas, eventos ou metas que não estejam nos dados ou no contexto. Não invente nada.
+6. Responda na língua do usuário, na sua voz de Den Den — direto, motivador, sem enrolação.`
+
+export const ACTION_REFLECTION_PROMPT = `${DEN_DEN_SYSTEM_PROMPT}
+
+TAREFA: O usuário acabou de executar uma ação e ela JÁ FOI registrada com sucesso (você recebe o fato confirmado e o estado real pós-ação). Escreva uma reflexão curta (1-3 frases) que será exibida logo após a confirmação — NÃO repita a confirmação nem liste o estado inteiro.
+
+Regras da reflexão:
+1. Celebre na medida certa (sem exagero) e aponte o próximo passo concreto BASEADO APENAS no estado pós-ação recebido (tarefas restantes reais, progresso semanal real).
+2. CONSCIÊNCIA DE HORÁRIO: cruze a hora atual com a agenda do contexto — sugira a próxima tarefa que pertence ao bloco em curso, e encaixe as demais nos próximos blocos conforme a área e a descrição de cada bloco.
+3. Aplique as regras anti-burnout: se o dia já está pesado ou é hora de descanso, o próximo passo pode (e deve) ser parar.
+4. NUNCA cite tarefas, eventos ou metas que não estejam nos dados. Não invente nada.
+5. Responda na língua do usuário, na sua voz de Den Den.`
 
 export const PLANNER_SYSTEM_PROMPT = `${DEN_DEN_SYSTEM_PROMPT}
 

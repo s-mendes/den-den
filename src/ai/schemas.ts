@@ -103,7 +103,9 @@ export const completeGoalIntent = z.object({
 export const queryIntent = z.object({
   type: z.literal('query'),
   data: z.object({
-    topic: z.enum(['today', 'week', 'goals', 'projects', 'profile', 'free']),
+    topic: z.enum(['today', 'week', 'goals', 'projects', 'profile', 'free', 'tasks']),
+    areaSlug: z.enum(['work', 'business', 'content', 'health', 'personal', 'study']).optional(),
+    projectName: z.string().optional(),
   }),
   ...baseResponse,
 })

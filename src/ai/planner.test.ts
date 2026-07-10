@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Planner } from './planner'
-import { PLANNER_SYSTEM_PROMPT } from './prompts'
+import { PLANNER_SYSTEM_PROMPT, QUERY_ANALYST_PROMPT, ACTION_REFLECTION_PROMPT } from './prompts'
 import { UserContext } from './interpreter'
 
 describe('Planner', () => {
@@ -140,6 +140,75 @@ describe('Planner', () => {
     expect(chatArgs[0]).toEqual({ role: 'system', content: PLANNER_SYSTEM_PROMPT })
     expect(chatArgs[2].content).toContain('balanço semanal')
     expect(result).toBe('Briefing sugerido')
+  })
+
+  it('inclui a descrição dos eventos do calendar no bloco de contexto', async () => {
+    const planner = new Planner(mockAIProvider as any)
+    const context: UserContext = {
+      discordUserId: '123',
+      calendarEvents: [
+        {
+          id: '1',
+          title: 'Zestify pesado',
+          start: new Date('2026-07-13T22:30:00Z'),
+          end: new Date('2026-07-14T00:30:00Z'),
+          isAllDay: false,
+          description: 'Das 19:30 às 21:30, foco em código ou feature importante. Exemplo: relatórios, checkout.',
+        },
+      ],
+    }
+
+    await planner.today(context)
+
+    const contextContent = mockAIProvider.chat.mock.calls[0][0][1].content
+    expect(contextContent).toContain('Zestify pesado')
+    expect(contextContent).toContain('foco em código ou feature importante')
+  })
+
+  describe('analyzeQuery', () => {
+    it('envia o QUERY_ANALYST_PROMPT com contexto, histórico, pergunta e dados', async () => {
+      const planner = new Planner(mockAIProvider as any)
+      const context: UserContext = { discordUserId: '123' }
+      const history = [
+        { role: 'user' as const, content: 'quais minhas tarefas?' },
+        { role: 'assistant' as const, content: 'aqui estão...' },
+      ]
+
+      const result = await planner.analyzeQuery('e as da macle?', '• Corrigir bug (💼 Trabalho)', context, history)
+
+      const messages = mockAIProvider.chat.mock.calls[0][0]
+      expect(messages[0]).toEqual({ role: 'system', content: QUERY_ANALYST_PROMPT })
+      expect(messages[2]).toEqual({ role: 'user', content: 'quais minhas tarefas?' })
+      expect(messages[3]).toEqual({ role: 'assistant', content: 'aqui estão...' })
+      const lastMessage = messages[messages.length - 1]
+      expect(lastMessage.role).toBe('user')
+      expect(lastMessage.content).toContain('e as da macle?')
+      expect(lastMessage.content).toContain('• Corrigir bug (💼 Trabalho)')
+      expect(result).toBe('Briefing sugerido')
+    })
+  })
+
+  describe('reflectOnAction', () => {
+    it('envia o ACTION_REFLECTION_PROMPT com fato e estado pós-ação', async () => {
+      const planner = new Planner(mockAIProvider as any)
+      const context: UserContext = { discordUserId: '123' }
+
+      const result = await planner.reflectOnAction(
+        'já gravei o gameplay',
+        '⚓ Tarefa concluída',
+        '✅ Restantes: • Corrigir bug',
+        context,
+        []
+      )
+
+      const messages = mockAIProvider.chat.mock.calls[0][0]
+      expect(messages[0]).toEqual({ role: 'system', content: ACTION_REFLECTION_PROMPT })
+      const lastMessage = messages[messages.length - 1]
+      expect(lastMessage.content).toContain('já gravei o gameplay')
+      expect(lastMessage.content).toContain('⚓ Tarefa concluída')
+      expect(lastMessage.content).toContain('• Corrigir bug')
+      expect(result).toBe('Briefing sugerido')
+    })
   })
 
   it('deve gerar o check-in noturno parabenizando em caso de commits', async () => {

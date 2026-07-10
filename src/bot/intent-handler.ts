@@ -7,6 +7,7 @@ import { contextService } from '../services/context.service'
 import { weeklyTargetsService, getCurrentWeekStart } from '../services/weekly-targets.service'
 import { delayTasks } from './delay-actions'
 import { tasksService } from '../services/tasks.service'
+import { areaLabel } from '../services/areas.data'
 import {
   goalNotFound,
   goalCompleted,
@@ -16,8 +17,10 @@ import {
   projectNotFound,
   projectWithoutGithub,
   nightlyNothingLogged,
+  checkinLogged,
   formatGoalsQuery,
   formatTodayQuery,
+  formatTasksQuery,
   formatWeekQuery,
   formatProjectsQuery,
   formatProfileQuery,
@@ -27,8 +30,9 @@ import { AreaSlug } from '@prisma/client'
 
 // Resultado estruturado da ação: quem envia a resposta ao Discord decide entre
 // a reply determinística (reflete o que de fato aconteceu) e a response do LLM.
+// `reflection.facts` carrega o estado real pós-ação para o estágio 2 (reflexão do LLM).
 export type IntentResult =
-  | { status: 'ok'; reply?: string }
+  | { status: 'ok'; reply?: string; reflection?: { facts: string } }
   | { status: 'error'; reply: string }
 
 const OK: IntentResult = { status: 'ok' }
@@ -71,7 +75,12 @@ export async function applyIntent(
         const task = await tasksService.findOpenByTitle(title)
         if (task) {
           await tasksService.complete(task.id)
-          return { status: 'ok', reply: taskCompleted(task.title) }
+          const remaining = await tasksService.listOpenForDate()
+          return {
+            status: 'ok',
+            reply: taskCompleted(task.title),
+            reflection: { facts: formatTasksQuery(remaining) },
+          }
         }
         if (kind === 'task') {
           const open = await tasksService.listOpenForDate()
@@ -97,6 +106,13 @@ export async function applyIntent(
         }
       }
       await goalsService.complete(goal.id)
+      const activeAfter = await goalsService.listActive()
+      const goalFacts =
+        activeAfter.length === 0
+          ? 'Nenhuma meta ativa restante.'
+          : `Metas ativas restantes:\n${activeAfter
+              .map((g) => `• ${g.title}: ${g.currentValue}${g.targetValue ? `/${g.targetValue}` : ''}`)
+              .join('\n')}`
       return {
         status: 'ok',
         reply: goalCompleted(goal.title, {
@@ -104,12 +120,18 @@ export async function applyIntent(
           targetValue: goal.targetValue,
           unit: goal.unit,
         }),
+        reflection: { facts: goalFacts },
       }
     }
 
     case 'create_task': {
       const task = await tasksService.create(intent.data)
-      return { status: 'ok', reply: taskCreated(task.title) }
+      const openToday = await tasksService.listOpenForDate()
+      return {
+        status: 'ok',
+        reply: taskCreated(task.title, task.areaSlug),
+        reflection: { facts: formatTasksQuery(openToday) },
+      }
     }
 
     case 'create_project':
@@ -144,25 +166,33 @@ export async function applyIntent(
       if (intent.data.activities.length > 0 && logged === 0) {
         return { status: 'error', reply: nightlyNothingLogged() }
       }
-      return OK
+      if (logged === 0) return OK
+      const weekly = await weeklyTargetsService.getWeekProgress(getCurrentWeekStart())
+      return {
+        status: 'ok',
+        reply: checkinLogged(logged),
+        reflection: { facts: formatWeekQuery(weekly, context.weeklyScore, context.weeklyStreak) },
+      }
     }
 
     // A resposta de query é 100% determinística: montada com dados reais do
     // banco/contexto, nunca com o texto especulativo do LLM.
     case 'query':
-      return { status: 'ok', reply: await answerQuery(intent.data.topic, discordUserId, context) }
+      return { status: 'ok', reply: await answerQuery(intent.data, discordUserId, context) }
 
     case 'chitchat':
       return OK
   }
 }
 
+type QueryData = Extract<Intent, { type: 'query' }>['data']
+
 async function answerQuery(
-  topic: 'today' | 'week' | 'goals' | 'projects' | 'profile' | 'free',
+  query: QueryData,
   discordUserId: string,
   context: UserContext
 ): Promise<string> {
-  switch (topic) {
+  switch (query.topic) {
     case 'goals': {
       const [goals, weekly] = await Promise.all([
         goalsService.listActive(),
@@ -202,5 +232,25 @@ async function answerQuery(
 
     case 'free':
       return formatFreeQuery(context.freeBlocks ?? [], context.calendarStatus)
+
+    case 'tasks': {
+      let tasks = await tasksService.listOpenForDate()
+      const labels: string[] = []
+
+      if (query.areaSlug) {
+        tasks = tasks.filter((t) => t.areaSlug === query.areaSlug)
+        labels.push(areaLabel(query.areaSlug))
+      }
+      if (query.projectName) {
+        const project = await projectsService.findByName(query.projectName)
+        if (project) {
+          tasks = tasks.filter((t) => t.projectId === project.id)
+          labels.push(project.name)
+        }
+        // Projeto não encontrado: mantém o resultado sem esse filtro em vez de responder vazio enganoso
+      }
+
+      return formatTasksQuery(tasks, labels.length > 0 ? labels.join(' / ') : undefined)
+    }
   }
 }

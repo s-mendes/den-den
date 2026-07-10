@@ -117,6 +117,23 @@ Para iniciar uma próxima issue sem herdar contexto da anterior:
 
 ---
 
+## Arquitetura de resposta em 2 estágios
+
+**Princípio permanente do projeto** — a inteligência do Den Den evolui aqui. Toda resposta conversacional passa por dois estágios:
+
+1. **Estágio 1 — Fatos**: o interpreter classifica o intent e o handler executa/busca SEMPRE com dados reais do banco/contexto (`applyIntent` → `IntentResult`). A `response` especulativa que o LLM gera junto da classificação **nunca** confirma ação nem lista dados — ela só vale para `chitchat`.
+2. **Estágio 2 — Pensamento**: um segundo prompt (`QUERY_ANALYST_PROMPT` para consultas, `ACTION_REFLECTION_PROMPT` para pós-ação, em `src/ai/prompts.ts`) recebe os fatos do estágio 1 + contexto completo (hora atual, agenda com descrições, metas, histórico da conversa) e gera a análise na voz do Den Den: o que priorizar agora, o que encaixar em qual bloco da agenda, o que ignorar. Implementação em `Planner.analyzeQuery` / `Planner.reflectOnAction` e `src/bot/query-analysis.ts`.
+
+**Invariantes (não quebrar):**
+- Os fatos determinísticos sempre aparecem na resposta final (listagem anexada na query; linha de confirmação na ação).
+- O estágio 2 não pode inventar nem omitir itens — só raciocina sobre o que recebeu.
+- Falha do LLM no estágio 2 degrada graciosamente para a resposta determinística (nunca quebra nem silencia).
+- Consciência de horário: o estágio 2 cruza a hora atual com o bloco da agenda em curso — a tarefa de cada bloco deve estar decidida antes do bloco começar.
+
+**Direção futura**: enriquecer o estágio 2 com mais sinais — histórico maior, padrões de sobrecarga, memória de longo prazo, dados do GitHub. Ao adicionar um dado novo ao contexto, verifique se ele chega aos dois estágios.
+
+---
+
 ## Regras de Produto
 
 **Regra fundamental:** O Den Den não deve maximizar produtividade. Ele deve maximizar **consistência sem burnout**.

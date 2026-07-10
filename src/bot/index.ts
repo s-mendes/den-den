@@ -99,7 +99,7 @@ export class DenDenBot {
       }
     })
 
-    registerMessageCreate(this.client, this.interpreter)
+    registerMessageCreate(this.client, this.interpreter, this.planner)
   }
 
   async registerSlashCommandsWithDiscord() {
