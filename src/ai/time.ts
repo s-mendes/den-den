@@ -56,3 +56,10 @@ export function formatDateForPrompt(date: Date, timeZone?: string): string {
   })
   return `${map.year}-${map.month}-${map.day}`
 }
+
+// Chave canônica de "dia" no banco: meia-noite UTC do dia LOCAL do usuário
+// (mesma convenção de WeeklyEntry.weekStart). 23h em SP ainda é o mesmo dia.
+export function getLocalDayStart(date: Date = new Date(), timeZone?: string): Date {
+  const [year, month, day] = formatDateForPrompt(date, timeZone).split('-').map(Number)
+  return new Date(Date.UTC(year, month - 1, day))
+}

@@ -63,6 +63,69 @@ describe('Planner', () => {
     expect(result).toBe('Briefing sugerido')
   })
 
+  it('avisa que o calendar está indisponível quando calendarStatus é "error" — sem fingir dia livre', async () => {
+    const planner = new Planner(mockAIProvider as any)
+    const context: UserContext = {
+      discordUserId: '123',
+      calendarStatus: 'error',
+      calendarEvents: [],
+    }
+
+    await planner.today(context)
+
+    const contextContent = mockAIProvider.chat.mock.calls[0][0][1].content
+    expect(contextContent).toContain('Google Calendar indisponível')
+    expect(contextContent).toContain('DESCONHECIDA')
+    expect(contextContent).not.toContain('Sem eventos agendados hoje')
+  })
+
+  it('avisa que o calendar não está configurado quando calendarStatus é "not_configured"', async () => {
+    const planner = new Planner(mockAIProvider as any)
+    const context: UserContext = {
+      discordUserId: '123',
+      calendarStatus: 'not_configured',
+      calendarEvents: [],
+    }
+
+    await planner.today(context)
+
+    const contextContent = mockAIProvider.chat.mock.calls[0][0][1].content
+    expect(contextContent).toContain('não configurado')
+    expect(contextContent).not.toContain('Sem eventos agendados hoje')
+  })
+
+  it('mantém "Sem eventos agendados hoje" quando o calendar respondeu ok com agenda vazia', async () => {
+    const planner = new Planner(mockAIProvider as any)
+    const context: UserContext = {
+      discordUserId: '123',
+      calendarStatus: 'ok',
+      calendarEvents: [],
+    }
+
+    await planner.today(context)
+
+    const contextContent = mockAIProvider.chat.mock.calls[0][0][1].content
+    expect(contextContent).toContain('Sem eventos agendados hoje')
+  })
+
+  it('inclui as tarefas pendentes de hoje no contexto do briefing', async () => {
+    const planner = new Planner(mockAIProvider as any)
+    const context: UserContext = {
+      discordUserId: '123',
+      todayTasks: [
+        { title: 'Ajustar cupom do checkout', status: 'pending', areaSlug: 'work' },
+        { title: 'Ligar pro dentista', status: 'done' },
+      ],
+    }
+
+    await planner.today(context)
+
+    const contextContent = mockAIProvider.chat.mock.calls[0][0][1].content
+    expect(contextContent).toContain('TAREFAS DE HOJE')
+    expect(contextContent).toContain('[ ] Ajustar cupom do checkout')
+    expect(contextContent).toContain('[x] Ligar pro dentista')
+  })
+
   it('deve gerar o resumo semanal (/plan) chamando a IA', async () => {
     const planner = new Planner(mockAIProvider as any)
     const context: UserContext = {

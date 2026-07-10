@@ -1,5 +1,5 @@
 import { afterEach, describe, it, expect } from 'vitest'
-import { formatDateTimeForPrompt, formatDateForPrompt, formatTimeForPrompt } from './time'
+import { formatDateTimeForPrompt, formatDateForPrompt, formatTimeForPrompt, getLocalDayStart } from './time'
 
 const originalEnv = { ...process.env }
 
@@ -57,6 +57,19 @@ describe('formatTimeForPrompt', () => {
 
     const date = new Date('2026-07-09T02:30:00Z')
     expect(formatTimeForPrompt(date)).toBe('23:30')
+  })
+})
+
+describe('getLocalDayStart', () => {
+  it('retorna a meia-noite UTC do dia local (23h em SP ainda é o mesmo dia)', () => {
+    // 2026-07-10T02:00:00Z = 23:00 de 09/07 em São Paulo → dia local é 09/07
+    const date = new Date('2026-07-10T02:00:00Z')
+    expect(getLocalDayStart(date, 'America/Sao_Paulo')).toEqual(new Date('2026-07-09T00:00:00Z'))
+  })
+
+  it('em UTC o dia é o próprio dia do timestamp', () => {
+    const date = new Date('2026-07-10T02:00:00Z')
+    expect(getLocalDayStart(date, 'UTC')).toEqual(new Date('2026-07-10T00:00:00Z'))
   })
 })
 

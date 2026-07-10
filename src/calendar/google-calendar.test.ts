@@ -24,7 +24,7 @@ import { GoogleCalendarClient } from './google-calendar'
 describe('GoogleCalendarClient', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    
+
     // Set up mock env vars
     process.env.GOOGLE_CLIENT_ID = 'mock-client-id'
     process.env.GOOGLE_CLIENT_SECRET = 'mock-client-secret'
@@ -59,7 +59,7 @@ describe('GoogleCalendarClient', () => {
       mockList.mockResolvedValue(googleMockResponse)
 
       const client = new GoogleCalendarClient()
-      const events = await client.getEventsForRange(start, end)
+      const result = await client.getEventsForRange(start, end)
 
       expect(mockList).toHaveBeenCalledWith({
         calendarId: 'primary',
@@ -68,15 +68,41 @@ describe('GoogleCalendarClient', () => {
         singleEvents: true,
         orderBy: 'startTime',
       })
-      
-      expect(events).toHaveLength(2)
-      expect(events[0].id).toBe('event-1')
-      expect(events[0].title).toBe('Daily Macle')
-      expect(events[0].isAllDay).toBe(false)
-      expect(events[0].location).toBe('Google Meet')
-      
-      expect(events[1].id).toBe('event-2')
-      expect(events[1].isAllDay).toBe(true)
+
+      expect(result.status).toBe('ok')
+      if (result.status !== 'ok') return
+
+      expect(result.events).toHaveLength(2)
+      expect(result.events[0].id).toBe('event-1')
+      expect(result.events[0].title).toBe('Daily Macle')
+      expect(result.events[0].isAllDay).toBe(false)
+      expect(result.events[0].location).toBe('Google Meet')
+
+      expect(result.events[1].id).toBe('event-2')
+      expect(result.events[1].isAllDay).toBe(true)
+    })
+
+    it('retorna status "error" quando a API do Google falha — sem mascarar como agenda vazia', async () => {
+      mockList.mockRejectedValue(new Error('invalid_grant: token expirado'))
+
+      const client = new GoogleCalendarClient()
+      const result = await client.getEventsForRange(new Date(), new Date())
+
+      expect(result.status).toBe('error')
+      if (result.status !== 'error') return
+      expect(result.message).toContain('invalid_grant')
+    })
+
+    it('retorna status "not_configured" quando faltam credenciais no env', async () => {
+      delete process.env.GOOGLE_CLIENT_ID
+      delete process.env.GOOGLE_CLIENT_SECRET
+      delete process.env.GOOGLE_REFRESH_TOKEN
+
+      const client = new GoogleCalendarClient()
+      const result = await client.getEventsForRange(new Date(), new Date())
+
+      expect(result).toEqual({ status: 'not_configured' })
+      expect(mockList).not.toHaveBeenCalled()
     })
   })
 
@@ -122,6 +148,15 @@ describe('GoogleCalendarClient', () => {
       expect(freeBlocks[1].start.getMinutes()).toBe(30)
       expect(freeBlocks[1].end.getHours()).toBe(22)
       expect(freeBlocks[1].end.getMinutes()).toBe(30)
+    })
+
+    it('retorna lista vazia quando a busca de eventos falha', async () => {
+      mockList.mockRejectedValue(new Error('quota exceeded'))
+
+      const client = new GoogleCalendarClient()
+      const freeBlocks = await client.getFreeBlocks(new Date('2026-07-09T12:00:00Z'), 30)
+
+      expect(freeBlocks).toEqual([])
     })
   })
 })

@@ -39,6 +39,7 @@ model Area {
   projects      Project[]
   goals         Goal[]
   weeklyTargets WeeklyTarget[]
+  tasks         Task[]
 }
 
 model Event {
@@ -102,9 +103,31 @@ model Project {
   status          String   @default("active")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  tasks           Task[]
 
   @@index([status])
   @@index([areaSlug])
+}
+
+enum TaskStatus {
+  pending
+  done
+}
+
+model Task {
+  id        Int        @id @default(autoincrement())
+  title     String
+  areaSlug  AreaSlug?
+  area      Area?      @relation(fields: [areaSlug], references: [slug])
+  projectId Int?
+  project   Project?   @relation(fields: [projectId], references: [id])
+  // Meia-noite UTC do dia LOCAL do usuário (mesma convenção de WeeklyEntry.weekStart)
+  date      DateTime
+  status    TaskStatus @default(pending)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([date, status])
 }
 
 model ContextLog {

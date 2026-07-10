@@ -37,8 +37,9 @@ export function registerMessageCreate(client: Client, interpreter: Interpreter) 
         .filter((msg) => msg.content.trim() !== '')
 
       const intent = await interpreter.interpret(content, context, history)
-      await applyIntent(intent, message.author.id)
-      await replyInChunks(message, intent.response)
+      const result = await applyIntent(intent, message.author.id, context)
+      // A reply determinística reflete o que de fato aconteceu; sem ela, vale a response do LLM
+      await replyInChunks(message, result.reply ?? intent.response)
     } catch (err) {
       console.error('Erro ao processar mensagem:', err)
       await message.reply(

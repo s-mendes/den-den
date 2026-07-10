@@ -14,8 +14,17 @@ export interface TimeBlock {
   durationMinutes: number
 }
 
+// Resultado discriminado: quem consome distingue "agenda vazia" de "calendar
+// indisponível" — erro nunca deve ser mascarado como dia livre.
+export type CalendarFetchResult =
+  | { status: 'ok'; events: CalendarEvent[] }
+  | { status: 'not_configured' }
+  | { status: 'error'; message: string }
+
+export type CalendarStatus = CalendarFetchResult['status']
+
 export interface CalendarClient {
-  getEventsForRange(start: Date, end: Date): Promise<CalendarEvent[]>
+  getEventsForRange(start: Date, end: Date): Promise<CalendarFetchResult>
   getFreeBlocks(
     date: Date,
     minMinutes?: number,

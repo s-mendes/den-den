@@ -5,6 +5,7 @@ import { projectsService } from '../services/projects.service'
 import { contextService } from '../services/context.service'
 import { eventsService } from '../services/events.service'
 import { weeklyTargetsService, getCurrentWeekStart } from '../services/weekly-targets.service'
+import { tasksService } from '../services/tasks.service'
 import { googleCalendarClient } from '../calendar/google-calendar'
 import { analyzeDayEvents } from '../calendar/parser'
 import { weeklyScoreService } from '../services/weekly-score.service'
@@ -27,9 +28,10 @@ export async function buildUserContext(discordUserId: string, daysAhead: number 
     activeContext,
     upcoming,
     weeklyProgress,
-    calendarEvents,
+    calendarResult,
     weeklyScore,
     weeklyStreak,
+    todayTasks,
   ] = await Promise.all([
     goalsService.listActive(),
     projectsService.listActive(),
@@ -39,10 +41,15 @@ export async function buildUserContext(discordUserId: string, daysAhead: number 
     googleCalendarClient.getEventsForRange(startOfDay, endOfRange),
     weeklyScoreService.calculateWeekScore(weekStart),
     weeklyScoreService.getStreak(now),
+    tasksService.listForDate(now),
   ])
 
-  // Deriva os blocos livres dos eventos já buscados — sem segunda chamada à API
-  const freeBlocks = await googleCalendarClient.getFreeBlocks(now, 30, calendarEvents)
+  const calendarEvents = calendarResult.status === 'ok' ? calendarResult.events : []
+
+  // Deriva os blocos livres dos eventos já buscados — sem segunda chamada à API.
+  // Sem agenda confiável, não há blocos livres: dia inteiro "livre" seria mentira.
+  const freeBlocks =
+    calendarResult.status === 'ok' ? await googleCalendarClient.getFreeBlocks(now, 30, calendarEvents) : []
 
   const dayAnalysis = analyzeDayEvents(now, calendarEvents)
 
@@ -70,6 +77,12 @@ export async function buildUserContext(discordUserId: string, daysAhead: number 
       completedCount: wp.completedCount,
       notes: wp.notes,
     })),
+    todayTasks: todayTasks.map((t) => ({
+      title: t.title,
+      status: t.status,
+      areaSlug: t.areaSlug,
+    })),
+    calendarStatus: calendarResult.status,
     calendarEvents: calendarEvents.map((ce) => ({
       id: ce.id,
       title: ce.title,

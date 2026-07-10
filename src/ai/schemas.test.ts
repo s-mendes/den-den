@@ -101,6 +101,65 @@ describe('intentSchema — discriminated union', () => {
     expect(intentSchema.safeParse(input).success).toBe(true)
   })
 
+  it('aceita complete_goal com title', () => {
+    const input = {
+      type: 'complete_goal',
+      data: { title: 'Ler 10 livros' },
+      response: 'Meta concluída!',
+    }
+    expect(intentSchema.safeParse(input).success).toBe(true)
+  })
+
+  it('aceita complete_goal com hint de kind', () => {
+    const input = {
+      type: 'complete_goal',
+      data: { title: 'issue #86', kind: 'task' },
+      response: 'ok',
+    }
+    expect(intentSchema.safeParse(input).success).toBe(true)
+  })
+
+  it('rejeita complete_goal sem title', () => {
+    const input = {
+      type: 'complete_goal',
+      data: {},
+      response: 'ok',
+    }
+    expect(intentSchema.safeParse(input).success).toBe(false)
+  })
+
+  it('aceita create_task com título e campos opcionais', () => {
+    const input = {
+      type: 'create_task',
+      data: {
+        title: 'Ajustar parâmetros do cupom de desconto',
+        areaSlug: 'work',
+        projectName: 'Checkout Macle',
+        date: '2026-07-10',
+      },
+      response: 'Tarefa anotada!',
+    }
+    expect(intentSchema.safeParse(input).success).toBe(true)
+  })
+
+  it('aceita create_task só com título', () => {
+    const input = {
+      type: 'create_task',
+      data: { title: 'Ligar pro dentista' },
+      response: 'ok',
+    }
+    expect(intentSchema.safeParse(input).success).toBe(true)
+  })
+
+  it('rejeita create_task sem title', () => {
+    const input = {
+      type: 'create_task',
+      data: { areaSlug: 'work' },
+      response: 'ok',
+    }
+    expect(intentSchema.safeParse(input).success).toBe(false)
+  })
+
   it('rejeita type desconhecido', () => {
     const input = { type: 'summon_luffy', data: {}, response: 'ok' }
     expect(intentSchema.safeParse(input).success).toBe(false)

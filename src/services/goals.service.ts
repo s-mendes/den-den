@@ -1,5 +1,6 @@
 import { prisma } from './db'
 import { AreaSlug } from '@prisma/client'
+import { pickBestByTitle } from './title-match'
 
 export interface CreateGoalInput {
   title: string
@@ -35,6 +36,15 @@ export const goalsService = {
     return prisma.goal.findFirst({
       where: { title: { contains: title, mode: 'insensitive' } },
     })
+  },
+
+  // Matching tolerante: primeiro tenta casar com metas ativas (caixa/acento-insensitive,
+  // sobreposição de palavras), depois cai no contains do banco como último recurso.
+  async findBestByTitle(title: string) {
+    const active = await this.listActive()
+    const best = pickBestByTitle(active, (g) => g.title, title)
+    if (best) return best
+    return this.findByTitle(title)
   },
 
   async logProgress(goalId: number, value: number, note?: string) {
