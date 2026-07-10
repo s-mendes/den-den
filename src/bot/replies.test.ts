@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { goalNotFound, projectNotFound, projectWithoutGithub, nightlyNothingLogged } from './replies'
+import {
+  goalNotFound,
+  goalCompleted,
+  projectNotFound,
+  projectWithoutGithub,
+  nightlyNothingLogged,
+} from './replies'
 
 describe('replies — templates determinísticos de falha', () => {
   describe('goalNotFound', () => {
@@ -17,6 +23,21 @@ describe('replies — templates determinísticos de falha', () => {
 
       expect(reply).toContain('Xablau')
       expect(reply).toMatch(/nenhuma meta ativa/i)
+    })
+  })
+
+  describe('goalCompleted', () => {
+    it('confirma a conclusão citando o título real da meta', () => {
+      const reply = goalCompleted('Ler 10 livros')
+
+      expect(reply).toContain('Ler 10 livros')
+      expect(reply).toMatch(/concluída/i)
+    })
+
+    it('inclui o progresso final quando informado', () => {
+      const reply = goalCompleted('Ler 10 livros', { currentValue: 8, targetValue: 10, unit: 'livros' })
+
+      expect(reply).toContain('8/10 livros')
     })
   })
 

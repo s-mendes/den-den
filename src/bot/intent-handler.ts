@@ -6,7 +6,13 @@ import { profileService } from '../services/profile.service'
 import { contextService } from '../services/context.service'
 import { weeklyTargetsService } from '../services/weekly-targets.service'
 import { delayTasks } from './delay-actions'
-import { goalNotFound, projectNotFound, projectWithoutGithub, nightlyNothingLogged } from './replies'
+import {
+  goalNotFound,
+  goalCompleted,
+  projectNotFound,
+  projectWithoutGithub,
+  nightlyNothingLogged,
+} from './replies'
 import { AreaSlug } from '@prisma/client'
 
 // Resultado estruturado da ação: quem envia a resposta ao Discord decide entre
@@ -32,7 +38,7 @@ export async function applyIntent(
       return OK
 
     case 'log_progress': {
-      const goal = await goalsService.findByTitle(intent.data.goalTitle)
+      const goal = await goalsService.findBestByTitle(intent.data.goalTitle)
       if (!goal) {
         const active = await goalsService.listActive()
         return {
@@ -45,6 +51,29 @@ export async function applyIntent(
       }
       await goalsService.logProgress(goal.id, intent.data.value, intent.data.note)
       return OK
+    }
+
+    case 'complete_goal': {
+      const goal = await goalsService.findBestByTitle(intent.data.title)
+      if (!goal) {
+        const active = await goalsService.listActive()
+        return {
+          status: 'error',
+          reply: goalNotFound(
+            intent.data.title,
+            active.map((g) => g.title)
+          ),
+        }
+      }
+      await goalsService.complete(goal.id)
+      return {
+        status: 'ok',
+        reply: goalCompleted(goal.title, {
+          currentValue: goal.currentValue,
+          targetValue: goal.targetValue,
+          unit: goal.unit,
+        }),
+      }
     }
 
     case 'create_project':

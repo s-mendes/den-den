@@ -9,6 +9,17 @@ export function goalNotFound(title: string, activeTitles: string[]): string {
   return `Gururururu... não encontrei nenhuma meta chamada *${title}*, capitão. As metas ativas no meu registro são:\n${list}\nQual delas você quis dizer?`
 }
 
+export function goalCompleted(
+  title: string,
+  progress?: { currentValue: number; targetValue?: number | null; unit?: string | null }
+): string {
+  const progressStr =
+    progress?.targetValue != null
+      ? ` Fechou em ${progress.currentValue}/${progress.targetValue}${progress.unit ? ` ${progress.unit}` : ''}.`
+      : ''
+  return `🎯 Meta *${title}* concluída, capitão!${progressStr} Mais um tesouro no baú — orgulho de nakama!`
+}
+
 export function projectNotFound(name?: string): string {
   if (!name) {
     return 'Kachak! Preciso saber qual projeto você quer ajustar, capitão. Me diz o nome dele?'

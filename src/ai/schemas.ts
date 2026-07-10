@@ -80,6 +80,15 @@ export const createProjectIntent = z.object({
   ...baseResponse,
 })
 
+export const completeGoalIntent = z.object({
+  type: z.literal('complete_goal'),
+  data: z.object({
+    title: z.string().min(1),
+    kind: z.enum(['goal', 'task']).optional(),
+  }),
+  ...baseResponse,
+})
+
 export const queryIntent = z.object({
   type: z.literal('query'),
   data: z.object({
@@ -123,6 +132,7 @@ export const intentSchema = z.discriminatedUnion('type', [
   createEventIntent,
   createGoalIntent,
   logProgressIntent,
+  completeGoalIntent,
   updateProfileIntent,
   setContextIntent,
   createProjectIntent,

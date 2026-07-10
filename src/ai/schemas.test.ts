@@ -101,6 +101,33 @@ describe('intentSchema — discriminated union', () => {
     expect(intentSchema.safeParse(input).success).toBe(true)
   })
 
+  it('aceita complete_goal com title', () => {
+    const input = {
+      type: 'complete_goal',
+      data: { title: 'Ler 10 livros' },
+      response: 'Meta concluída!',
+    }
+    expect(intentSchema.safeParse(input).success).toBe(true)
+  })
+
+  it('aceita complete_goal com hint de kind', () => {
+    const input = {
+      type: 'complete_goal',
+      data: { title: 'issue #86', kind: 'task' },
+      response: 'ok',
+    }
+    expect(intentSchema.safeParse(input).success).toBe(true)
+  })
+
+  it('rejeita complete_goal sem title', () => {
+    const input = {
+      type: 'complete_goal',
+      data: {},
+      response: 'ok',
+    }
+    expect(intentSchema.safeParse(input).success).toBe(false)
+  })
+
   it('rejeita type desconhecido', () => {
     const input = { type: 'summon_luffy', data: {}, response: 'ok' }
     expect(intentSchema.safeParse(input).success).toBe(false)

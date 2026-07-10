@@ -15,8 +15,9 @@ vi.mock('../services/projects.service', () => ({
 }))
 vi.mock('../services/goals.service', () => ({
   goalsService: {
-    findByTitle: vi.fn(),
+    findBestByTitle: vi.fn(),
     logProgress: vi.fn(),
+    complete: vi.fn(),
     listActive: vi.fn().mockResolvedValue([]),
   },
 }))
@@ -125,10 +126,10 @@ describe('applyIntent — log_progress', () => {
   }
 
   it('registra progresso e retorna ok quando a meta é encontrada', async () => {
-    vi.mocked(goalsService.findByTitle).mockResolvedValue({
+    vi.mocked(goalsService.findBestByTitle).mockResolvedValue({
       id: 7,
       title: 'Ler 10 livros',
-    } as Awaited<ReturnType<typeof goalsService.findByTitle>>)
+    } as Awaited<ReturnType<typeof goalsService.findBestByTitle>>)
 
     const result = await applyIntent(logIntent('Ler 10 livros', 1), 'u1', ctx)
 
@@ -137,7 +138,7 @@ describe('applyIntent — log_progress', () => {
   })
 
   it('retorna erro listando metas ativas quando a meta não é encontrada — sem confirmar falsamente', async () => {
-    vi.mocked(goalsService.findByTitle).mockResolvedValue(null)
+    vi.mocked(goalsService.findBestByTitle).mockResolvedValue(null)
     vi.mocked(goalsService.listActive).mockResolvedValue([
       { title: 'Ler 10 livros' },
       { title: 'Correr 5km' },
@@ -150,6 +151,44 @@ describe('applyIntent — log_progress', () => {
     expect(result.reply).toContain('Xablau')
     expect(result.reply).toContain('Ler 10 livros')
     expect(result.reply).toContain('Correr 5km')
+  })
+})
+
+describe('applyIntent — complete_goal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  function completeIntent(title: string, kind?: 'goal' | 'task'): Intent {
+    return { type: 'complete_goal', data: { title, kind }, response: 'ok' } as Intent
+  }
+
+  it('marca a meta como concluída e confirma com reply determinística', async () => {
+    vi.mocked(goalsService.findBestByTitle).mockResolvedValue({
+      id: 3,
+      title: 'Ler 10 livros',
+    } as Awaited<ReturnType<typeof goalsService.findBestByTitle>>)
+
+    const result = await applyIntent(completeIntent('meta dos livros'), 'u1', ctx)
+
+    expect(goalsService.complete).toHaveBeenCalledWith(3)
+    expect(result.status).toBe('ok')
+    expect(result.reply).toContain('Ler 10 livros')
+    expect(result.reply).toMatch(/concluída/i)
+  })
+
+  it('retorna erro listando metas ativas quando o título não casa — sem marcar nada', async () => {
+    vi.mocked(goalsService.findBestByTitle).mockResolvedValue(null)
+    vi.mocked(goalsService.listActive).mockResolvedValue([
+      { title: 'Ler 10 livros' },
+    ] as Awaited<ReturnType<typeof goalsService.listActive>>)
+
+    const result = await applyIntent(completeIntent('issue #86'), 'u1', ctx)
+
+    expect(goalsService.complete).not.toHaveBeenCalled()
+    expect(result.status).toBe('error')
+    expect(result.reply).toContain('issue #86')
+    expect(result.reply).toContain('Ler 10 livros')
   })
 })
 
