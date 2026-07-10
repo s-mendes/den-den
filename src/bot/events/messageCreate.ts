@@ -1,10 +1,12 @@
 import { Client, Message, ChannelType } from 'discord.js'
 import { Interpreter } from '../../ai/interpreter'
+import { Planner } from '../../ai/planner'
 import { buildUserContext } from '../context'
 import { applyIntent } from '../intent-handler'
+import { enrichQueryReply } from '../query-analysis'
 import { replyInChunks } from '../split-message'
 
-export function registerMessageCreate(client: Client, interpreter: Interpreter) {
+export function registerMessageCreate(client: Client, interpreter: Interpreter, planner: Planner) {
   client.on('messageCreate', async (message: Message) => {
     if (message.author.bot) return
 
@@ -39,7 +41,12 @@ export function registerMessageCreate(client: Client, interpreter: Interpreter) 
       const intent = await interpreter.interpret(content, context, history)
       const result = await applyIntent(intent, message.author.id, context)
       // A reply determinística reflete o que de fato aconteceu; sem ela, vale a response do LLM
-      await replyInChunks(message, result.reply ?? intent.response)
+      let reply = result.reply ?? intent.response
+      // Estágio 2 para consultas: o Den Den pensa sobre os dados antes de responder
+      if (intent.type === 'query' && result.status === 'ok' && result.reply) {
+        reply = await enrichQueryReply(planner, content, result.reply, context, history)
+      }
+      await replyInChunks(message, reply)
     } catch (err) {
       console.error('Erro ao processar mensagem:', err)
       await message.reply(

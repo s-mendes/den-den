@@ -162,6 +162,43 @@ describe('Interpreter.interpret', () => {
     expect(contextBlock).toContain('DESCONHECIDA')
   })
 
+  it('inclui a descrição dos eventos na agenda — o escopo de cada bloco alimenta o raciocínio', async () => {
+    const provider = makeProvider([
+      JSON.stringify({ type: 'chitchat', data: {}, response: 'oi' }),
+    ])
+    const interpreter = new Interpreter(provider)
+    const longDescription = 'A'.repeat(300)
+    const context: UserContext = {
+      discordUserId: 'u1',
+      calendarEvents: [
+        {
+          id: '1',
+          title: 'Zestify pesado',
+          start: new Date('2026-07-13T22:30:00Z'),
+          end: new Date('2026-07-14T00:30:00Z'),
+          isAllDay: false,
+          description: 'Foco em código ou feature importante. Exemplo: relatórios, checkout.',
+        },
+        {
+          id: '2',
+          title: 'Bloco X',
+          start: new Date('2026-07-13T12:00:00Z'),
+          end: new Date('2026-07-13T13:00:00Z'),
+          isAllDay: false,
+          description: longDescription,
+        },
+      ],
+    }
+
+    await interpreter.interpret('o que faço hoje?', context)
+
+    const contextBlock = vi.mocked(provider.chat).mock.calls[0][0][1].content
+
+    expect(contextBlock).toContain('Foco em código ou feature importante')
+    expect(contextBlock).not.toContain(longDescription)
+    expect(contextBlock).toContain('A'.repeat(200) + '…')
+  })
+
   it('injeta o bloco TAREFAS DE HOJE quando o contexto tem tarefas', async () => {
     const provider = makeProvider([
       JSON.stringify({ type: 'chitchat', data: {}, response: 'oi' }),

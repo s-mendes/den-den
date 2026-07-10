@@ -2,6 +2,7 @@ import { AIProvider } from './provider'
 import { INTERPRETER_SYSTEM_PROMPT } from './prompts'
 import { Intent, parseIntent } from './schemas'
 import { formatDateForPrompt, formatDateTimeForPrompt, formatTimeForPrompt } from './time'
+import { formatCalendarEventLine } from './event-format'
 
 export type { Intent, IntentType } from './schemas'
 
@@ -167,10 +168,7 @@ export class Interpreter {
     } else if (ctx.calendarEvents?.length) {
       lines.push('\n-- AGENDA DE HOJE (Google Calendar) --')
       for (const ce of ctx.calendarEvents) {
-        const allDayStr = ce.isAllDay
-          ? '[Dia Inteiro]'
-          : `[${formatTimeForPrompt(ce.start)} - ${formatTimeForPrompt(ce.end)}]`
-        lines.push(`- ${allDayStr} - ${ce.title}${ce.location ? ` (${ce.location})` : ''}`)
+        lines.push(formatCalendarEventLine(ce))
       }
     }
 
