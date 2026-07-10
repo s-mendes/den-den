@@ -53,7 +53,8 @@ describe('Planner', () => {
     // Valida que as variáveis de calendário e análise foram formatadas no bloco de contexto
     const contextContent = chatArgs[1].content
     expect(contextContent).toContain('AGENDA DO DIA (Google Calendar):')
-    expect(contextContent).toContain('Daily Macle')
+    // 09:00Z → 06:00 em America/Sao_Paulo (fuso padrão do prompt)
+    expect(contextContent).toContain('[06:00 - 06:30] - Daily Macle')
     expect(contextContent).toContain('BLOCOS LIVRES OPERACIONAIS:')
     expect(contextContent).toContain('120 minutos livres')
     expect(contextContent).toContain('ANÁLISE DE CARGA DO DIA:')

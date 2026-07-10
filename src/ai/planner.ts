@@ -1,7 +1,7 @@
 import { AIProvider } from './provider'
 import { PLANNER_SYSTEM_PROMPT } from './prompts'
 import { UserContext } from './interpreter'
-import { formatDateTimeForPrompt } from './time'
+import { formatDateTimeForPrompt, formatTimeForPrompt } from './time'
 
 export class Planner {
   constructor(private ai: AIProvider) {}
@@ -80,9 +80,9 @@ export class Planner {
     if (ctx.calendarEvents?.length) {
       lines.push('\nAGENDA DO DIA (Google Calendar):')
       for (const ce of ctx.calendarEvents) {
-        const startStr = ce.start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-        const endStr = ce.end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-        const allDayStr = ce.isAllDay ? '[Dia Inteiro]' : `[${startStr} - ${endStr}]`
+        const allDayStr = ce.isAllDay
+          ? '[Dia Inteiro]'
+          : `[${formatTimeForPrompt(ce.start)} - ${formatTimeForPrompt(ce.end)}]`
         lines.push(`- ${allDayStr} - ${ce.title}${ce.location ? ` (${ce.location})` : ''}`)
       }
     } else {
@@ -92,9 +92,9 @@ export class Planner {
     if (ctx.freeBlocks?.length) {
       lines.push('\nBLOCOS LIVRES OPERACIONAIS:')
       for (const fb of ctx.freeBlocks) {
-        const startStr = fb.start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-        const endStr = fb.end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-        lines.push(`- ${startStr} às ${endStr} (${fb.durationMinutes} minutos livres)`)
+        lines.push(
+          `- ${formatTimeForPrompt(fb.start)} às ${formatTimeForPrompt(fb.end)} (${fb.durationMinutes} minutos livres)`
+        )
       }
     }
 

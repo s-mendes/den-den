@@ -1,7 +1,7 @@
 import { AIProvider } from './provider'
 import { INTERPRETER_SYSTEM_PROMPT } from './prompts'
 import { Intent, parseIntent } from './schemas'
-import { formatDateForPrompt, formatDateTimeForPrompt } from './time'
+import { formatDateForPrompt, formatDateTimeForPrompt, formatTimeForPrompt } from './time'
 
 export type { Intent, IntentType } from './schemas'
 
@@ -146,6 +146,31 @@ export class Interpreter {
       for (const e of ctx.upcomingEvents) {
         lines.push(`- ${formatDateTimeForPrompt(e.datetime)}: ${e.title}`)
       }
+    }
+
+    if (ctx.calendarEvents?.length) {
+      lines.push('\n-- AGENDA DE HOJE (Google Calendar) --')
+      for (const ce of ctx.calendarEvents) {
+        const allDayStr = ce.isAllDay
+          ? '[Dia Inteiro]'
+          : `[${formatTimeForPrompt(ce.start)} - ${formatTimeForPrompt(ce.end)}]`
+        lines.push(`- ${allDayStr} - ${ce.title}${ce.location ? ` (${ce.location})` : ''}`)
+      }
+    }
+
+    if (ctx.freeBlocks?.length) {
+      lines.push('\n-- BLOCOS LIVRES OPERACIONAIS DE HOJE --')
+      for (const fb of ctx.freeBlocks) {
+        lines.push(
+          `- ${formatTimeForPrompt(fb.start)} às ${formatTimeForPrompt(fb.end)} (${fb.durationMinutes} minutos livres)`
+        )
+      }
+    }
+
+    if (ctx.dayAnalysis) {
+      lines.push('\n-- ANÁLISE DE CARGA DE HOJE --')
+      lines.push(`- Expediente de trabalho pesado (>8h)? ${ctx.dayAnalysis.isHeavyWorkDay ? 'SIM' : 'NÃO'}`)
+      lines.push(`- Praticou atividade física/treino hoje? ${ctx.dayAnalysis.hasWorkout ? 'SIM' : 'NÃO'}`)
     }
 
     if (ctx.weeklyProgress?.length) {
