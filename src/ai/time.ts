@@ -3,7 +3,7 @@
 // com o offset explícito pra remover qualquer ambiguidade.
 const DEFAULT_TIME_ZONE = 'America/Sao_Paulo'
 
-function resolveTimeZone(timeZone?: string): string {
+export function resolveTimeZone(timeZone?: string): string {
   return timeZone ?? process.env.APP_TIME_ZONE ?? process.env.TZ ?? DEFAULT_TIME_ZONE
 }
 

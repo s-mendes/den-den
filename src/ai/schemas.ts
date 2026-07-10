@@ -91,7 +91,7 @@ export const queryIntent = z.object({
 export const delayTasksIntent = z.object({
   type: z.literal('delay_tasks'),
   data: z.object({
-    days: z.number().int(),
+    days: z.number().int().min(1).max(365),
     scope: z.enum(['all', 'project', 'events']).optional(),
     projectName: z.string().optional(),
   }),

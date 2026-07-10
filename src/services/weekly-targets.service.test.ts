@@ -49,6 +49,21 @@ describe('weeklyTargetsService', () => {
 
       expect(start.getUTCDate()).toBe(6)
     })
+
+    it('domingo à noite em São Paulo ainda conta na semana corrente, mesmo já sendo segunda em UTC', () => {
+      // 2026-07-13T02:00Z é segunda 02:00 UTC, mas domingo 12/07 23:00 em America/Sao_Paulo
+      const date = new Date(Date.UTC(2026, 6, 13, 2, 0, 0))
+      const start = getCurrentWeekStart(date)
+
+      expect(start.toISOString()).toBe('2026-07-06T00:00:00.000Z')
+    })
+
+    it('segunda 00:00 em São Paulo (03:00 UTC) já abre a semana nova', () => {
+      const date = new Date(Date.UTC(2026, 6, 13, 3, 0, 0))
+      const start = getCurrentWeekStart(date)
+
+      expect(start.toISOString()).toBe('2026-07-13T00:00:00.000Z')
+    })
   })
 
   describe('create', () => {

@@ -1,5 +1,57 @@
-import { CalendarEvent } from './client'
+import { CalendarEvent, TimeBlock } from './client'
 import { AreaSlug } from '@prisma/client'
+
+// Calcula os intervalos livres dentro de uma janela operacional a partir de
+// eventos já buscados. Eventos de dia inteiro não ocupam tempo; sobreposições
+// são mescladas; eventos fora da janela são clampados/descartados.
+export function computeFreeBlocks(
+  events: CalendarEvent[],
+  windowStart: Date,
+  windowEnd: Date,
+  minMinutes: number = 30
+): TimeBlock[] {
+  if (windowEnd.getTime() <= windowStart.getTime()) return []
+
+  const busyEvents = events
+    .filter((e) => !e.isAllDay)
+    .map((e) => ({
+      start: Math.max(windowStart.getTime(), e.start.getTime()),
+      end: Math.min(windowEnd.getTime(), e.end.getTime()),
+    }))
+    .filter((e) => e.start < e.end)
+    .sort((a, b) => a.start - b.start)
+
+  const mergedBusy: Array<{ start: number; end: number }> = []
+  for (const current of busyEvents) {
+    const last = mergedBusy[mergedBusy.length - 1]
+    if (last && current.start <= last.end) {
+      last.end = Math.max(last.end, current.end)
+    } else {
+      mergedBusy.push({ ...current })
+    }
+  }
+
+  const freeBlocks: TimeBlock[] = []
+  let currentStart = windowStart.getTime()
+
+  const pushIfLongEnough = (start: number, end: number) => {
+    if (end - start >= minMinutes * 60 * 1000) {
+      freeBlocks.push({
+        start: new Date(start),
+        end: new Date(end),
+        durationMinutes: Math.round((end - start) / (60 * 1000)),
+      })
+    }
+  }
+
+  for (const busy of mergedBusy) {
+    pushIfLongEnough(currentStart, busy.start)
+    currentStart = Math.max(currentStart, busy.end)
+  }
+  pushIfLongEnough(currentStart, windowEnd.getTime())
+
+  return freeBlocks
+}
 
 export interface AreaTimeSummary {
   areaSlug: AreaSlug

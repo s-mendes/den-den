@@ -2,6 +2,7 @@ import { Client, Message, ChannelType } from 'discord.js'
 import { Interpreter } from '../../ai/interpreter'
 import { buildUserContext } from '../context'
 import { applyIntent } from '../intent-handler'
+import { replyInChunks } from '../split-message'
 
 export function registerMessageCreate(client: Client, interpreter: Interpreter) {
   client.on('messageCreate', async (message: Message) => {
@@ -37,7 +38,7 @@ export function registerMessageCreate(client: Client, interpreter: Interpreter) 
 
       const intent = await interpreter.interpret(content, context, history)
       await applyIntent(intent, message.author.id)
-      await message.reply(intent.response)
+      await replyInChunks(message, intent.response)
     } catch (err) {
       console.error('Erro ao processar mensagem:', err)
       await message.reply(

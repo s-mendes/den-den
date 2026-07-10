@@ -76,7 +76,7 @@ export const eventsService = {
   async delayAll(days: number) {
     const events = await prisma.event.findMany({ where: { status: 'pending' } })
     const ms = days * 24 * 60 * 60 * 1000
-    return Promise.all(
+    return prisma.$transaction(
       events.map((e) =>
         prisma.event.update({
           where: { id: e.id },

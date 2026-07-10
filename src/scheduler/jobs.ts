@@ -5,7 +5,8 @@ import { buildUserContext } from '../bot/context'
 import { eventsService } from '../services/events.service'
 import { projectsService } from '../services/projects.service'
 import { getGitHubClient } from '../github/client'
-import { formatTimeForPrompt } from '../ai/time'
+import { formatTimeForPrompt, resolveTimeZone } from '../ai/time'
+import { splitDiscordMessage } from '../bot/split-message'
 
 export class Scheduler {
   constructor(
@@ -15,11 +16,14 @@ export class Scheduler {
   ) {}
 
   start() {
-    cron.schedule('0 8 * * *', () => this.morningBriefing().catch(console.error))
-    cron.schedule('*/15 * * * *', () => this.eventReminders().catch(console.error))
-    cron.schedule('30 21 * * *', () => this.nightlyCheck().catch(console.error))
-    cron.schedule('0 20 * * 0', () => this.weeklySummary().catch(console.error))
-    console.log('⏰ Scheduler ativo: bom dia 08h, lembretes a cada 15min, check 21h30, resumo dom 20h')
+    const timezone = resolveTimeZone()
+    cron.schedule('0 8 * * *', () => this.morningBriefing().catch(console.error), { timezone })
+    cron.schedule('*/15 * * * *', () => this.eventReminders().catch(console.error), { timezone })
+    cron.schedule('30 21 * * *', () => this.nightlyCheck().catch(console.error), { timezone })
+    cron.schedule('0 20 * * 0', () => this.weeklySummary().catch(console.error), { timezone })
+    console.log(
+      `⏰ Scheduler ativo (${timezone}): bom dia 08h, lembretes a cada 15min, check 21h30, resumo dom 20h`
+    )
   }
 
   private async getTargetUser(): Promise<User | null> {
@@ -35,7 +39,9 @@ export class Scheduler {
     const user = await this.getTargetUser()
     if (!user) return
     try {
-      await user.send(content)
+      for (const chunk of splitDiscordMessage(content)) {
+        await user.send(chunk)
+      }
     } catch (err) {
       console.error('Não consegui enviar DM:', err)
     }

@@ -96,10 +96,11 @@ Para iniciar uma próxima issue sem herdar contexto da anterior:
   - `pre-commit`: roda `typecheck + lint + test` (bloqueia commit em red)
   - `commit-msg`: roda `commitlint` (bloqueia mensagem fora do padrão)
 
-### Dívidas de tooling ainda abertas
+### Tooling de CI/CD
 
-- [ ] **Proteção de `main`** no GitHub — exigir PR e status checks
-- [ ] **CI (GitHub Actions)** — rodar typecheck + lint + test a cada PR
+- **CI (GitHub Actions)** — `.github/workflows/ci.yml` roda typecheck + lint + test a cada PR
+- **CD (GitHub Actions)** — `.github/workflows/cd.yml` faz build/push GHCR e deploy SSH na VPS (com `prisma migrate deploy`)
+- **Proteção de `main`** — exige PR com o status check "Typecheck, lint e testes" verde
 
 ---
 

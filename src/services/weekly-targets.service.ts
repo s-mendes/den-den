@@ -1,5 +1,6 @@
 import { prisma } from './db'
 import { AreaSlug } from '@prisma/client'
+import { formatDateForPrompt } from '../ai/time'
 
 export interface CreateWeeklyTargetInput {
   areaSlug: AreaSlug
@@ -7,17 +8,17 @@ export interface CreateWeeklyTargetInput {
   targetCount: number
 }
 
+// A semana é definida pelo calendário LOCAL do usuário (APP_TIME_ZONE): domingo à
+// noite em São Paulo já é segunda em UTC, mas ainda pertence à semana corrente.
+// A chave retornada continua sendo a meia-noite UTC da segunda-feira local, para
+// manter compatibilidade com os registros existentes de WeeklyEntry.
 export function getCurrentWeekStart(date: Date = new Date()): Date {
-  const d = new Date(date)
-  const day = d.getUTCDay()
-  // d.getUTCDay() retorna 0 para domingo, 1 para segunda, ..., 6 para sábado.
-  // Se for domingo (0), queremos voltar 6 dias.
-  // Se for segunda (1), queremos voltar 0 dias.
-  // Se for terça (2), queremos voltar 1 dia, etc.
-  const diff = d.getUTCDate() - (day === 0 ? 6 : day - 1)
-  const monday = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), diff))
-  monday.setUTCHours(0, 0, 0, 0)
-  return monday
+  const [year, month, day] = formatDateForPrompt(date).split('-').map(Number)
+  const localDayUtc = Date.UTC(year, month - 1, day)
+  const weekday = new Date(localDayUtc).getUTCDay()
+  // 0 = domingo (volta 6 dias), 1 = segunda (volta 0), 2 = terça (volta 1)...
+  const diffDays = weekday === 0 ? 6 : weekday - 1
+  return new Date(localDayUtc - diffDays * 24 * 60 * 60 * 1000)
 }
 
 export const weeklyTargetsService = {
