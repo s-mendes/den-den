@@ -22,6 +22,11 @@ export interface UserContext {
   activeProjects?: Array<{ name: string; githubRepo?: string | null }>
   activeContext?: Array<{ description: string; endDate?: Date | null }>
   upcomingEvents?: Array<{ title: string; datetime: Date }>
+  todayTasks?: Array<{
+    title: string
+    status: 'pending' | 'done'
+    areaSlug?: string | null
+  }>
   weeklyProgress?: Array<{
     areaSlug: string
     activity: string
@@ -175,6 +180,15 @@ export class Interpreter {
         lines.push(
           `- ${formatTimeForPrompt(fb.start)} às ${formatTimeForPrompt(fb.end)} (${fb.durationMinutes} minutos livres)`
         )
+      }
+    }
+
+    if (ctx.todayTasks?.length) {
+      lines.push('\n-- TAREFAS DE HOJE --')
+      for (const t of ctx.todayTasks) {
+        const check = t.status === 'done' ? '[x]' : '[ ]'
+        const area = t.areaSlug ? ` (${t.areaSlug})` : ''
+        lines.push(`- ${check} ${t.title}${area}`)
       }
     }
 

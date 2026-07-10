@@ -108,6 +108,24 @@ describe('Planner', () => {
     expect(contextContent).toContain('Sem eventos agendados hoje')
   })
 
+  it('inclui as tarefas pendentes de hoje no contexto do briefing', async () => {
+    const planner = new Planner(mockAIProvider as any)
+    const context: UserContext = {
+      discordUserId: '123',
+      todayTasks: [
+        { title: 'Ajustar cupom do checkout', status: 'pending', areaSlug: 'work' },
+        { title: 'Ligar pro dentista', status: 'done' },
+      ],
+    }
+
+    await planner.today(context)
+
+    const contextContent = mockAIProvider.chat.mock.calls[0][0][1].content
+    expect(contextContent).toContain('TAREFAS DE HOJE')
+    expect(contextContent).toContain('[ ] Ajustar cupom do checkout')
+    expect(contextContent).toContain('[x] Ligar pro dentista')
+  })
+
   it('deve gerar o resumo semanal (/plan) chamando a IA', async () => {
     const planner = new Planner(mockAIProvider as any)
     const context: UserContext = {

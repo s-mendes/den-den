@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest'
 import {
   goalNotFound,
   goalCompleted,
+  taskCreated,
+  taskCompleted,
+  taskNotFound,
   projectNotFound,
   projectWithoutGithub,
   nightlyNothingLogged,
@@ -38,6 +41,41 @@ describe('replies — templates determinísticos de falha', () => {
       const reply = goalCompleted('Ler 10 livros', { currentValue: 8, targetValue: 10, unit: 'livros' })
 
       expect(reply).toContain('8/10 livros')
+    })
+  })
+
+  describe('taskCreated', () => {
+    it('confirma a criação citando o título da tarefa', () => {
+      const reply = taskCreated('Ajustar cupom do checkout')
+
+      expect(reply).toContain('Ajustar cupom do checkout')
+      expect(reply).toMatch(/anotad/i)
+    })
+  })
+
+  describe('taskCompleted', () => {
+    it('confirma a conclusão citando o título da tarefa', () => {
+      const reply = taskCompleted('Finalizar issue #86')
+
+      expect(reply).toContain('Finalizar issue #86')
+      expect(reply).toMatch(/concluída/i)
+    })
+  })
+
+  describe('taskNotFound', () => {
+    it('inclui o título procurado e as tarefas pendentes de hoje', () => {
+      const reply = taskNotFound('issue #99', ['Ligar pro dentista'])
+
+      expect(reply).toContain('issue #99')
+      expect(reply).toContain('Ligar pro dentista')
+      expect(reply).toMatch(/não encontrei/i)
+    })
+
+    it('avisa quando não há tarefas pendentes hoje', () => {
+      const reply = taskNotFound('issue #99', [])
+
+      expect(reply).toContain('issue #99')
+      expect(reply).toMatch(/nenhuma tarefa pendente/i)
     })
   })
 

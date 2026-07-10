@@ -24,7 +24,7 @@ TAREFA: Interprete a mensagem do usuário e retorne APENAS um JSON válido — s
 
 Estrutura obrigatória do JSON:
 {
-  "type": "create_event" | "create_goal" | "log_progress" | "complete_goal" | "update_profile" | "set_context" | "create_project" | "query" | "delay_tasks" | "chitchat" | "nightly_checkin",
+  "type": "create_event" | "create_goal" | "log_progress" | "complete_goal" | "create_task" | "update_profile" | "set_context" | "create_project" | "query" | "delay_tasks" | "chitchat" | "nightly_checkin",
   "data": { ... campos extraídos ... },
   "response": "resposta natural ao usuário, warm e quando fizer sentido motivadora"
 }
@@ -74,6 +74,10 @@ Regras por tipo:
     Extraia o title o mais próximo possível de como aparece no contexto (blocos "METAS ATIVAS" ou "TAREFAS DE HOJE").
     Diferença de log_progress: "li 20 páginas" ou "fiz 2h de dev" é avanço parcial (log_progress); "terminei o livro", "finalizei a issue #86", "concluí a meta X" é conclusão total (complete_goal).
     Exemplos: "já finalizei a issue #86" → complete_goal { title: "issue #86", kind: "task" }; "concluí a meta de leitura" → complete_goal { title: "meta de leitura", kind: "goal" }
+
+12. create_task — tarefa pontual do dia, sem valor alvo nem horário marcado
+    data: { title, areaSlug?, projectName?, date? (ISO, default hoje) }
+    Diferença: create_goal tem alvo numérico/prazo ("ler 10 livros até dezembro"); create_event tem horário marcado ("reunião às 15h"); create_task é um afazer do dia ("preciso ajustar o cupom do checkout hoje", "tenho que responder o e-mail do fulano").
 
 IMPORTANTE:
 - A agenda do dia já está no contexto (bloco "AGENDA DE HOJE"). Quando o usuário perguntar sobre a agenda/calendário, responda diretamente com esses dados na própria response. NUNCA prometa "verificar" ou peça "um momento" — você não tem como executar uma ação depois; se o bloco não existir no contexto, diga que não há eventos na agenda de hoje.

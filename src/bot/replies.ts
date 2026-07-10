@@ -20,6 +20,22 @@ export function goalCompleted(
   return `🎯 Meta *${title}* concluída, capitão!${progressStr} Mais um tesouro no baú — orgulho de nakama!`
 }
 
+export function taskCreated(title: string): string {
+  return `✅ Tarefa *${title}* anotada pra hoje, capitão! Tá no meu registro — te cobro se precisar.`
+}
+
+export function taskCompleted(title: string): string {
+  return `⚓ Tarefa *${title}* concluída, capitão! Rota limpa — bora pro próximo objetivo (ou pro descanso, que também é progresso).`
+}
+
+export function taskNotFound(title: string, openTitles: string[]): string {
+  if (openTitles.length === 0) {
+    return `Gururururu... não encontrei a tarefa *${title}* — você não tem nenhuma tarefa pendente registrada pra hoje, capitão.`
+  }
+  const list = openTitles.map((t) => `• ${t}`).join('\n')
+  return `Gururururu... não encontrei a tarefa *${title}*, capitão. As pendentes de hoje são:\n${list}\nQual delas você quis dizer?`
+}
+
 export function projectNotFound(name?: string): string {
   if (!name) {
     return 'Kachak! Preciso saber qual projeto você quer ajustar, capitão. Me diz o nome dele?'

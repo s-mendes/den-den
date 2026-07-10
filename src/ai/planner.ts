@@ -106,6 +106,15 @@ export class Planner {
       }
     }
 
+    if (ctx.todayTasks?.length) {
+      lines.push('\nTAREFAS DE HOJE:')
+      for (const t of ctx.todayTasks) {
+        const check = t.status === 'done' ? '[x]' : '[ ]'
+        const area = t.areaSlug ? ` (${t.areaSlug})` : ''
+        lines.push(`- ${check} ${t.title}${area}`)
+      }
+    }
+
     if (ctx.dayAnalysis) {
       lines.push('\nANÁLISE DE CARGA DO DIA:')
       lines.push(`- Dia pesado de trabalho fixo (>8h)? ${ctx.dayAnalysis.isHeavyWorkDay ? 'SIM' : 'NÃO'}`)

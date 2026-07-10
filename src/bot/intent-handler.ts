@@ -6,9 +6,13 @@ import { profileService } from '../services/profile.service'
 import { contextService } from '../services/context.service'
 import { weeklyTargetsService } from '../services/weekly-targets.service'
 import { delayTasks } from './delay-actions'
+import { tasksService } from '../services/tasks.service'
 import {
   goalNotFound,
   goalCompleted,
+  taskCreated,
+  taskCompleted,
+  taskNotFound,
   projectNotFound,
   projectWithoutGithub,
   nightlyNothingLogged,
@@ -54,13 +58,34 @@ export async function applyIntent(
     }
 
     case 'complete_goal': {
-      const goal = await goalsService.findBestByTitle(intent.data.title)
+      const { title, kind } = intent.data
+
+      // Sem hint, tarefas pontuais de hoje têm prioridade sobre metas de longo prazo
+      if (kind !== 'goal') {
+        const task = await tasksService.findOpenByTitle(title)
+        if (task) {
+          await tasksService.complete(task.id)
+          return { status: 'ok', reply: taskCompleted(task.title) }
+        }
+        if (kind === 'task') {
+          const open = await tasksService.listOpenForDate()
+          return {
+            status: 'error',
+            reply: taskNotFound(
+              title,
+              open.map((t) => t.title)
+            ),
+          }
+        }
+      }
+
+      const goal = await goalsService.findBestByTitle(title)
       if (!goal) {
         const active = await goalsService.listActive()
         return {
           status: 'error',
           reply: goalNotFound(
-            intent.data.title,
+            title,
             active.map((g) => g.title)
           ),
         }
@@ -74,6 +99,11 @@ export async function applyIntent(
           unit: goal.unit,
         }),
       }
+    }
+
+    case 'create_task': {
+      const task = await tasksService.create(intent.data)
+      return { status: 'ok', reply: taskCreated(task.title) }
     }
 
     case 'create_project':

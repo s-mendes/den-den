@@ -3,6 +3,7 @@ import { applyIntent } from './intent-handler'
 import { eventsService } from '../services/events.service'
 import { projectsService } from '../services/projects.service'
 import { goalsService } from '../services/goals.service'
+import { tasksService } from '../services/tasks.service'
 import { weeklyTargetsService } from '../services/weekly-targets.service'
 import { getGitHubClient } from '../github/client'
 import { Intent, UserContext } from '../ai/interpreter'
@@ -23,6 +24,14 @@ vi.mock('../services/goals.service', () => ({
 }))
 vi.mock('../services/weekly-targets.service', () => ({
   weeklyTargetsService: { logActivity: vi.fn() },
+}))
+vi.mock('../services/tasks.service', () => ({
+  tasksService: {
+    create: vi.fn(),
+    complete: vi.fn(),
+    findOpenByTitle: vi.fn(),
+    listOpenForDate: vi.fn().mockResolvedValue([]),
+  },
 }))
 vi.mock('../github/client', () => ({
   getGitHubClient: vi.fn(() => null),
@@ -189,6 +198,73 @@ describe('applyIntent — complete_goal', () => {
     expect(result.status).toBe('error')
     expect(result.reply).toContain('issue #86')
     expect(result.reply).toContain('Ler 10 livros')
+  })
+
+  it('sem hint, tenta tarefa pendente de hoje antes de meta', async () => {
+    vi.mocked(tasksService.findOpenByTitle).mockResolvedValue({
+      id: 5,
+      title: 'Finalizar issue #86',
+    } as Awaited<ReturnType<typeof tasksService.findOpenByTitle>>)
+
+    const result = await applyIntent(completeIntent('issue #86'), 'u1', ctx)
+
+    expect(tasksService.complete).toHaveBeenCalledWith(5)
+    expect(goalsService.complete).not.toHaveBeenCalled()
+    expect(result.status).toBe('ok')
+    expect(result.reply).toContain('Finalizar issue #86')
+  })
+
+  it('com kind "task", não cai em metas quando a tarefa não é encontrada', async () => {
+    vi.mocked(tasksService.findOpenByTitle).mockResolvedValue(null)
+    vi.mocked(tasksService.listOpenForDate).mockResolvedValue([
+      { title: 'Ligar pro dentista' },
+    ] as Awaited<ReturnType<typeof tasksService.listOpenForDate>>)
+
+    const result = await applyIntent(completeIntent('issue #99', 'task'), 'u1', ctx)
+
+    expect(goalsService.findBestByTitle).not.toHaveBeenCalled()
+    expect(result.status).toBe('error')
+    expect(result.reply).toContain('issue #99')
+    expect(result.reply).toContain('Ligar pro dentista')
+  })
+
+  it('com kind "goal", não consulta tarefas', async () => {
+    vi.mocked(goalsService.findBestByTitle).mockResolvedValue({
+      id: 3,
+      title: 'Ler 10 livros',
+    } as Awaited<ReturnType<typeof goalsService.findBestByTitle>>)
+
+    await applyIntent(completeIntent('meta dos livros', 'goal'), 'u1', ctx)
+
+    expect(tasksService.findOpenByTitle).not.toHaveBeenCalled()
+    expect(goalsService.complete).toHaveBeenCalledWith(3)
+  })
+})
+
+describe('applyIntent — create_task', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('cria a tarefa e confirma com reply determinística', async () => {
+    vi.mocked(tasksService.create).mockResolvedValue({
+      id: 1,
+      title: 'Ajustar cupom do checkout',
+    } as Awaited<ReturnType<typeof tasksService.create>>)
+
+    const result = await applyIntent(
+      {
+        type: 'create_task',
+        data: { title: 'Ajustar cupom do checkout', areaSlug: 'work' },
+        response: 'ok',
+      } as Intent,
+      'u1',
+      ctx
+    )
+
+    expect(tasksService.create).toHaveBeenCalledWith({ title: 'Ajustar cupom do checkout', areaSlug: 'work' })
+    expect(result.status).toBe('ok')
+    expect(result.reply).toContain('Ajustar cupom do checkout')
   })
 })
 
