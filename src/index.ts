@@ -5,12 +5,19 @@ import { Planner } from './ai/planner'
 import { DenDenBot } from './bot'
 import { Scheduler } from './scheduler/jobs'
 import { prisma } from './services/db'
+import { areasService } from './services/areas.service'
 
 async function main() {
   const token = requireEnv('DISCORD_TOKEN')
   const clientId = requireEnv('DISCORD_CLIENT_ID')
   const guildId = process.env.DISCORD_GUILD_ID
   const targetUserId = requireEnv('DISCORD_USER_ID')
+
+  // Goal/Task/WeeklyTarget têm FK obrigatória para Area: sem as áreas semeadas,
+  // qualquer criação estoura P2003. Upsert idempotente garante o bootstrap em
+  // qualquer ambiente (o CD roda só `migrate deploy`, que não executa seed).
+  const areas = await areasService.seedDefaults()
+  console.log(`🗺️ Áreas da vida garantidas no banco: ${areas.length}`)
 
   const ai = createAIProvider()
   console.log(`🤖 Provedor de IA: ${process.env.AI_PROVIDER || 'gemini'}`)
