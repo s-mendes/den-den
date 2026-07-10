@@ -7,6 +7,7 @@ import { contextService } from '../services/context.service'
 import { weeklyTargetsService, getCurrentWeekStart } from '../services/weekly-targets.service'
 import { delayTasks } from './delay-actions'
 import { tasksService } from '../services/tasks.service'
+import { areaLabel } from '../services/areas.data'
 import {
   goalNotFound,
   goalCompleted,
@@ -18,6 +19,7 @@ import {
   nightlyNothingLogged,
   formatGoalsQuery,
   formatTodayQuery,
+  formatTasksQuery,
   formatWeekQuery,
   formatProjectsQuery,
   formatProfileQuery,
@@ -109,7 +111,7 @@ export async function applyIntent(
 
     case 'create_task': {
       const task = await tasksService.create(intent.data)
-      return { status: 'ok', reply: taskCreated(task.title) }
+      return { status: 'ok', reply: taskCreated(task.title, task.areaSlug) }
     }
 
     case 'create_project':
@@ -150,19 +152,21 @@ export async function applyIntent(
     // A resposta de query é 100% determinística: montada com dados reais do
     // banco/contexto, nunca com o texto especulativo do LLM.
     case 'query':
-      return { status: 'ok', reply: await answerQuery(intent.data.topic, discordUserId, context) }
+      return { status: 'ok', reply: await answerQuery(intent.data, discordUserId, context) }
 
     case 'chitchat':
       return OK
   }
 }
 
+type QueryData = Extract<Intent, { type: 'query' }>['data']
+
 async function answerQuery(
-  topic: 'today' | 'week' | 'goals' | 'projects' | 'profile' | 'free',
+  query: QueryData,
   discordUserId: string,
   context: UserContext
 ): Promise<string> {
-  switch (topic) {
+  switch (query.topic) {
     case 'goals': {
       const [goals, weekly] = await Promise.all([
         goalsService.listActive(),
@@ -202,5 +206,25 @@ async function answerQuery(
 
     case 'free':
       return formatFreeQuery(context.freeBlocks ?? [], context.calendarStatus)
+
+    case 'tasks': {
+      let tasks = await tasksService.listOpenForDate()
+      const labels: string[] = []
+
+      if (query.areaSlug) {
+        tasks = tasks.filter((t) => t.areaSlug === query.areaSlug)
+        labels.push(areaLabel(query.areaSlug))
+      }
+      if (query.projectName) {
+        const project = await projectsService.findByName(query.projectName)
+        if (project) {
+          tasks = tasks.filter((t) => t.projectId === project.id)
+          labels.push(project.name)
+        }
+        // Projeto não encontrado: mantém o resultado sem esse filtro em vez de responder vazio enganoso
+      }
+
+      return formatTasksQuery(tasks, labels.length > 0 ? labels.join(' / ') : undefined)
+    }
   }
 }

@@ -56,9 +56,10 @@ Regras por tipo:
 6. create_project — side project ou projeto principal
    data: { name, description?, areaSlug (work|business|content|health|personal|study), githubRepo? (owner/repo), priority? (1-5) }
 
-7. query — usuário quer consultar algo (agenda, metas, projetos)
-   data: { topic: "today"|"week"|"goals"|"projects"|"profile"|"free" }
-   Exemplos de gatilho: "metas" / "minhas metas" → goals; "o que tenho hoje?" / "agenda" → today; "como tá minha semana?" → week; "meus projetos" → projects; "tenho tempo livre?" → free.
+7. query — usuário quer consultar algo (agenda, metas, projetos, tarefas)
+   data: { topic: "today"|"week"|"goals"|"projects"|"profile"|"free"|"tasks", areaSlug?, projectName? }
+   Exemplos de gatilho: "metas" / "minhas metas" → goals; "o que tenho hoje?" / "agenda" → today; "como tá minha semana?" → week; "meus projetos" → projects; "tenho tempo livre?" → free; "quais tarefas..." / "o que falta fazer" → tasks.
+   Filtros do topic tasks: se o usuário citar uma área ou algo que mapeia pra ela, extraia areaSlug (ex: "quais tarefas para macle sistemas?" → { topic: "tasks", areaSlug: "work" }; "tarefas do canal" → { topic: "tasks", areaSlug: "content" }). Se citar um projeto cadastrado (bloco PROJETOS ATIVOS), extraia projectName.
    Para query, a response será SUBSTITUÍDA por uma listagem montada com dados reais do banco — escreva uma response curta e neutra (ex: "Aqui vão suas metas!").
 
 8. delay_tasks — empurrar eventos/tarefas pra frente

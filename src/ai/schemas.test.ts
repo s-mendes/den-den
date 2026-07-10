@@ -160,6 +160,33 @@ describe('intentSchema — discriminated union', () => {
     expect(intentSchema.safeParse(input).success).toBe(false)
   })
 
+  it('aceita query com topic tasks e filtro de areaSlug', () => {
+    const input = {
+      type: 'query',
+      data: { topic: 'tasks', areaSlug: 'work' },
+      response: 'Aqui vão!',
+    }
+    expect(intentSchema.safeParse(input).success).toBe(true)
+  })
+
+  it('aceita query com filtro de projectName', () => {
+    const input = {
+      type: 'query',
+      data: { topic: 'tasks', projectName: 'Zestify' },
+      response: 'ok',
+    }
+    expect(intentSchema.safeParse(input).success).toBe(true)
+  })
+
+  it('rejeita areaSlug inválida em query', () => {
+    const input = {
+      type: 'query',
+      data: { topic: 'tasks', areaSlug: 'hobby' },
+      response: 'ok',
+    }
+    expect(intentSchema.safeParse(input).success).toBe(false)
+  })
+
   it('rejeita type desconhecido', () => {
     const input = { type: 'summon_luffy', data: {}, response: 'ok' }
     expect(intentSchema.safeParse(input).success).toBe(false)

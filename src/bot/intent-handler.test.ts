@@ -368,6 +368,60 @@ describe('applyIntent — query', () => {
     expect(result.reply).toContain('Ajustar cupom do checkout')
   })
 
+  it('topic tasks com areaSlug retorna só as tarefas daquela área', async () => {
+    vi.mocked(tasksService.listOpenForDate).mockResolvedValue([
+      { title: 'Corrigir bug do checkout', areaSlug: 'work', projectId: null },
+      { title: 'Gravar gameplay', areaSlug: 'content', projectId: null },
+    ] as Awaited<ReturnType<typeof tasksService.listOpenForDate>>)
+
+    const result = await applyIntent(
+      { type: 'query', data: { topic: 'tasks', areaSlug: 'work' }, response: 'ok' } as Intent,
+      'u1',
+      ctx
+    )
+
+    expect(result.status).toBe('ok')
+    expect(result.reply).toContain('Corrigir bug do checkout')
+    expect(result.reply).not.toContain('Gravar gameplay')
+  })
+
+  it('topic tasks com projectName resolve o projeto e filtra por projectId', async () => {
+    vi.mocked(projectsService.findByName).mockResolvedValue({
+      id: 42,
+      name: 'Zestify',
+    } as Awaited<ReturnType<typeof projectsService.findByName>>)
+    vi.mocked(tasksService.listOpenForDate).mockResolvedValue([
+      { title: 'Relatórios do painel', areaSlug: 'business', projectId: 42 },
+      { title: 'Gravar gameplay', areaSlug: 'content', projectId: null },
+    ] as Awaited<ReturnType<typeof tasksService.listOpenForDate>>)
+
+    const result = await applyIntent(
+      { type: 'query', data: { topic: 'tasks', projectName: 'Zestify' }, response: 'ok' } as Intent,
+      'u1',
+      ctx
+    )
+
+    expect(projectsService.findByName).toHaveBeenCalledWith('Zestify')
+    expect(result.reply).toContain('Relatórios do painel')
+    expect(result.reply).not.toContain('Gravar gameplay')
+  })
+
+  it('topic tasks sem filtro lista todas as pendentes de hoje', async () => {
+    vi.mocked(tasksService.listOpenForDate).mockResolvedValue([
+      { title: 'Corrigir bug do checkout', areaSlug: 'work', projectId: null },
+      { title: 'Gravar gameplay', areaSlug: 'content', projectId: null },
+    ] as Awaited<ReturnType<typeof tasksService.listOpenForDate>>)
+
+    const result = await applyIntent(
+      { type: 'query', data: { topic: 'tasks' }, response: 'ok' } as Intent,
+      'u1',
+      ctx
+    )
+
+    expect(result.reply).toContain('Corrigir bug do checkout')
+    expect(result.reply).toContain('Gravar gameplay')
+  })
+
   it('topic free lista os blocos livres do contexto', async () => {
     const freeCtx = {
       ...ctx,

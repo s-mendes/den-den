@@ -2,6 +2,7 @@
 // Funções puras: recebem dados prontos, nunca tocam no banco.
 
 import { formatTimeForPrompt } from '../ai/time'
+import { areaLabel } from '../services/areas.data'
 
 const CALENDAR_UNAVAILABLE =
   '⚠️ Não consegui acessar seu Google Calendar agora — a agenda abaixo pode estar incompleta.'
@@ -32,8 +33,9 @@ export function goalCompleted(
   return `🎯 Meta *${title}* concluída, capitão!${progressStr} Mais um tesouro no baú — orgulho de nakama!`
 }
 
-export function taskCreated(title: string): string {
-  return `✅ Tarefa *${title}* anotada pra hoje, capitão! Tá no meu registro — te cobro se precisar.`
+export function taskCreated(title: string, areaSlug?: string | null): string {
+  const area = areaSlug ? ` em ${areaLabel(areaSlug)}` : ''
+  return `✅ Tarefa *${title}* anotada pra hoje${area}, capitão! Tá no meu registro — te cobro se precisar.`
 }
 
 export function taskCompleted(title: string): string {
@@ -96,7 +98,7 @@ export function formatTodayQuery(args: {
   calendarStatus?: 'ok' | 'not_configured' | 'error'
   calendarEvents: Array<{ title: string; start: Date; end: Date; isAllDay: boolean; location?: string | null }>
   dbEvents: Array<{ title: string; datetime: Date; location?: string | null }>
-  tasks: Array<{ title: string }>
+  tasks: Array<{ title: string; areaSlug?: string | null }>
 }): string {
   const lines: string[] = []
   const warning = calendarWarning(args.calendarStatus)
@@ -126,10 +128,25 @@ export function formatTodayQuery(args: {
     lines.push('Nenhuma tarefa pendente pra hoje.')
   } else {
     for (const t of args.tasks) {
-      lines.push(`• ${t.title}`)
+      lines.push(`• ${t.title}${t.areaSlug ? ` (${areaLabel(t.areaSlug)})` : ''}`)
     }
   }
 
+  return lines.join('\n')
+}
+
+export function formatTasksQuery(
+  tasks: Array<{ title: string; areaSlug?: string | null }>,
+  filterLabel?: string
+): string {
+  const scope = filterLabel ? ` de ${filterLabel}` : ''
+  if (tasks.length === 0) {
+    return `✅ Nenhuma tarefa pendente${scope} pra hoje, capitão!`
+  }
+  const lines = [`✅ **Tarefas pendentes${scope}**`]
+  for (const t of tasks) {
+    lines.push(`• ${t.title}${t.areaSlug ? ` (${areaLabel(t.areaSlug)})` : ''}`)
+  }
   return lines.join('\n')
 }
 

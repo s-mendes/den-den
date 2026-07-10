@@ -10,6 +10,7 @@ import {
   nightlyNothingLogged,
   formatGoalsQuery,
   formatTodayQuery,
+  formatTasksQuery,
   formatWeekQuery,
   formatProjectsQuery,
   formatProfileQuery,
@@ -56,6 +57,12 @@ describe('replies — templates determinísticos de falha', () => {
 
       expect(reply).toContain('Ajustar cupom do checkout')
       expect(reply).toMatch(/anotad/i)
+    })
+
+    it('ecoa a área quando a tarefa tem areaSlug — feedback da classificação', () => {
+      const reply = taskCreated('Gravar gameplay', 'content')
+
+      expect(reply).toContain('🎮 Conteúdo')
     })
   })
 
@@ -153,12 +160,13 @@ describe('replies — formatters de query com dados reais', () => {
           },
         ],
         dbEvents: [{ title: 'Consulta médica', datetime: new Date('2026-07-10T18:00:00Z') }],
-        tasks: [{ title: 'Ajustar cupom do checkout' }],
+        tasks: [{ title: 'Ajustar cupom do checkout', areaSlug: 'work' }],
       })
 
       expect(reply).toContain('Daily Macle')
       expect(reply).toContain('Consulta médica')
       expect(reply).toContain('Ajustar cupom do checkout')
+      expect(reply).toContain('💼 Trabalho')
     })
 
     it('avisa quando o calendar está indisponível — não finge dia livre', () => {
@@ -171,6 +179,32 @@ describe('replies — formatters de query com dados reais', () => {
 
       expect(reply).toMatch(/não consegui acessar.*calendar/i)
       expect(reply).not.toMatch(/sem eventos no calendário/i)
+    })
+  })
+
+  describe('formatTasksQuery', () => {
+    it('lista tarefas com tag de área', () => {
+      const reply = formatTasksQuery([
+        { title: 'Corrigir bug do checkout', areaSlug: 'work' },
+        { title: 'Gravar gameplay', areaSlug: 'content' },
+      ])
+
+      expect(reply).toContain('Corrigir bug do checkout')
+      expect(reply).toContain('💼 Trabalho')
+      expect(reply).toContain('🎮 Conteúdo')
+    })
+
+    it('inclui o rótulo do filtro no título quando informado', () => {
+      const reply = formatTasksQuery([{ title: 'Corrigir bug do checkout', areaSlug: 'work' }], '💼 Trabalho')
+
+      expect(reply).toMatch(/tarefas.*💼 Trabalho/i)
+    })
+
+    it('vazio com filtro tem mensagem amigável citando o filtro', () => {
+      const reply = formatTasksQuery([], '💼 Trabalho')
+
+      expect(reply).toMatch(/nenhuma tarefa pendente/i)
+      expect(reply).toContain('💼 Trabalho')
     })
   })
 
