@@ -28,7 +28,6 @@ export async function buildUserContext(discordUserId: string, daysAhead: number 
     upcoming,
     weeklyProgress,
     calendarEvents,
-    freeBlocks,
     weeklyScore,
     weeklyStreak,
   ] = await Promise.all([
@@ -38,10 +37,12 @@ export async function buildUserContext(discordUserId: string, daysAhead: number 
     eventsService.listUpcoming(24 * daysAhead),
     weeklyTargetsService.getWeekProgress(weekStart),
     googleCalendarClient.getEventsForRange(startOfDay, endOfRange),
-    googleCalendarClient.getFreeBlocks(now),
     weeklyScoreService.calculateWeekScore(weekStart),
     weeklyScoreService.getStreak(now),
   ])
+
+  // Deriva os blocos livres dos eventos já buscados — sem segunda chamada à API
+  const freeBlocks = await googleCalendarClient.getFreeBlocks(now, 30, calendarEvents)
 
   const dayAnalysis = analyzeDayEvents(now, calendarEvents)
 

@@ -16,5 +16,9 @@ export interface TimeBlock {
 
 export interface CalendarClient {
   getEventsForRange(start: Date, end: Date): Promise<CalendarEvent[]>
-  getFreeBlocks(date: Date, minMinutes?: number): Promise<TimeBlock[]>
+  getFreeBlocks(
+    date: Date,
+    minMinutes?: number,
+    prefetchedEvents?: CalendarEvent[]
+  ): Promise<TimeBlock[]>
 }

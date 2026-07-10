@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { classifyEventArea, analyzeDayEvents } from './parser'
+import { classifyEventArea, analyzeDayEvents, computeFreeBlocks } from './parser'
 import { AreaSlug } from '@prisma/client'
 import { CalendarEvent } from './client'
 
@@ -100,5 +100,65 @@ describe('calendar parser', () => {
 
       expect(analysis.isHeavyWorkDay).toBe(true)
     })
+  })
+})
+
+describe('computeFreeBlocks', () => {
+  const day = (h: number, m = 0) => new Date(2026, 6, 9, h, m, 0, 0)
+  const event = (id: string, start: Date, end: Date, isAllDay = false): CalendarEvent => ({
+    id,
+    title: `evento ${id}`,
+    start,
+    end,
+    isAllDay,
+  })
+
+  it('retorna o dia operacional inteiro quando não há eventos', () => {
+    const blocks = computeFreeBlocks([], day(8), day(22, 30))
+
+    expect(blocks).toHaveLength(1)
+    expect(blocks[0].start).toEqual(day(8))
+    expect(blocks[0].end).toEqual(day(22, 30))
+    expect(blocks[0].durationMinutes).toBe(870)
+  })
+
+  it('calcula os intervalos livres entre eventos', () => {
+    const events = [event('1', day(12), day(13)), event('2', day(18), day(19, 15))]
+    const blocks = computeFreeBlocks(events, day(8), day(22, 30))
+
+    expect(blocks.map((b) => [b.start.getHours(), b.end.getHours()])).toEqual([
+      [8, 12],
+      [13, 18],
+      [19, 22],
+    ])
+  })
+
+  it('mescla eventos sobrepostos e ignora eventos de dia inteiro', () => {
+    const events = [
+      event('all-day', day(0), day(23, 59), true),
+      event('1', day(10), day(12)),
+      event('2', day(11), day(14)),
+    ]
+    const blocks = computeFreeBlocks(events, day(8), day(22, 30))
+
+    expect(blocks.map((b) => [b.start.getHours(), b.end.getHours()])).toEqual([
+      [8, 10],
+      [14, 22],
+    ])
+  })
+
+  it('descarta blocos menores que o mínimo de minutos', () => {
+    const events = [event('1', day(8, 20), day(22, 15))]
+    const blocks = computeFreeBlocks(events, day(8), day(22, 30), 30)
+
+    expect(blocks).toHaveLength(0)
+  })
+
+  it('ignora eventos fora da janela operacional', () => {
+    const events = [event('1', day(5), day(7)), event('2', day(23), day(23, 30))]
+    const blocks = computeFreeBlocks(events, day(8), day(22, 30))
+
+    expect(blocks).toHaveLength(1)
+    expect(blocks[0].durationMinutes).toBe(870)
   })
 })
