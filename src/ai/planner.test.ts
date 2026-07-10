@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Planner } from './planner'
-import { PLANNER_SYSTEM_PROMPT, QUERY_ANALYST_PROMPT } from './prompts'
+import { PLANNER_SYSTEM_PROMPT, QUERY_ANALYST_PROMPT, ACTION_REFLECTION_PROMPT } from './prompts'
 import { UserContext } from './interpreter'
 
 describe('Planner', () => {
@@ -184,6 +184,29 @@ describe('Planner', () => {
       expect(lastMessage.role).toBe('user')
       expect(lastMessage.content).toContain('e as da macle?')
       expect(lastMessage.content).toContain('• Corrigir bug (💼 Trabalho)')
+      expect(result).toBe('Briefing sugerido')
+    })
+  })
+
+  describe('reflectOnAction', () => {
+    it('envia o ACTION_REFLECTION_PROMPT com fato e estado pós-ação', async () => {
+      const planner = new Planner(mockAIProvider as any)
+      const context: UserContext = { discordUserId: '123' }
+
+      const result = await planner.reflectOnAction(
+        'já gravei o gameplay',
+        '⚓ Tarefa concluída',
+        '✅ Restantes: • Corrigir bug',
+        context,
+        []
+      )
+
+      const messages = mockAIProvider.chat.mock.calls[0][0]
+      expect(messages[0]).toEqual({ role: 'system', content: ACTION_REFLECTION_PROMPT })
+      const lastMessage = messages[messages.length - 1]
+      expect(lastMessage.content).toContain('já gravei o gameplay')
+      expect(lastMessage.content).toContain('⚓ Tarefa concluída')
+      expect(lastMessage.content).toContain('• Corrigir bug')
       expect(result).toBe('Briefing sugerido')
     })
   })

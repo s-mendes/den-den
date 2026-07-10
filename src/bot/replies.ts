@@ -61,6 +61,10 @@ export function projectWithoutGithub(name: string): string {
   return `O projeto *${name}* existe, mas não tem repositório GitHub vinculado — então não consigo mexer nos milestones dele, capitão. Nada foi alterado.`
 }
 
+export function checkinLogged(count: number): string {
+  return `📝 Registrei ${count} atividade${count === 1 ? '' : 's'} nas suas metas semanais, capitão!`
+}
+
 export function nightlyNothingLogged(): string {
   return 'Anotei seu relato, capitão, mas nenhuma das atividades bateu com uma meta semanal ativa — então nada foi registrado no progresso. Se quiser, crie metas semanais pra essas áreas!'
 }

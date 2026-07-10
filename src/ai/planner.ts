@@ -1,5 +1,5 @@
 import { AIProvider } from './provider'
-import { PLANNER_SYSTEM_PROMPT, QUERY_ANALYST_PROMPT } from './prompts'
+import { PLANNER_SYSTEM_PROMPT, QUERY_ANALYST_PROMPT, ACTION_REFLECTION_PROMPT } from './prompts'
 import { UserContext } from './interpreter'
 import { formatDateTimeForPrompt, formatTimeForPrompt } from './time'
 import { formatCalendarEventLine } from './event-format'
@@ -65,6 +65,30 @@ export class Planner {
         {
           role: 'user',
           content: `Pergunta do usuário: ${question}\n\nDADOS REAIS já buscados (a listagem será anexada após a sua análise — não a repita):\n${dataBlock}`,
+        },
+      ],
+      { temperature: 0.7 }
+    )
+    return response.text
+  }
+
+  // Estágio 2 pós-ação: reflete sobre o fato confirmado + estado real do dia
+  async reflectOnAction(
+    userMessage: string,
+    factLine: string,
+    postActionState: string,
+    context: UserContext,
+    history: Array<{ role: 'user' | 'assistant'; content: string }> = []
+  ): Promise<string> {
+    const ctxBlock = this.buildContextBlock(context)
+    const response = await this.ai.chat(
+      [
+        { role: 'system', content: ACTION_REFLECTION_PROMPT },
+        { role: 'system', content: ctxBlock },
+        ...history,
+        {
+          role: 'user',
+          content: `Mensagem do usuário: ${userMessage}\n\nFATO CONFIRMADO (já será exibido, não repita): ${factLine}\n\nESTADO REAL PÓS-AÇÃO:\n${postActionState}`,
         },
       ],
       { temperature: 0.7 }

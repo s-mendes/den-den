@@ -8,6 +8,7 @@ import {
   projectNotFound,
   projectWithoutGithub,
   nightlyNothingLogged,
+  checkinLogged,
   formatGoalsQuery,
   formatTodayQuery,
   formatTasksQuery,
@@ -113,6 +114,15 @@ describe('replies — templates determinísticos de falha', () => {
 
       expect(reply).toContain('Zestify')
       expect(reply).toMatch(/github/i)
+    })
+  })
+
+  describe('checkinLogged', () => {
+    it('confirma quantas atividades foram registradas', () => {
+      const reply = checkinLogged(2)
+
+      expect(reply).toMatch(/registr/i)
+      expect(reply).toContain('2')
     })
   })
 

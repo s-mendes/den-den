@@ -17,6 +17,7 @@ import {
   projectNotFound,
   projectWithoutGithub,
   nightlyNothingLogged,
+  checkinLogged,
   formatGoalsQuery,
   formatTodayQuery,
   formatTasksQuery,
@@ -29,8 +30,9 @@ import { AreaSlug } from '@prisma/client'
 
 // Resultado estruturado da ação: quem envia a resposta ao Discord decide entre
 // a reply determinística (reflete o que de fato aconteceu) e a response do LLM.
+// `reflection.facts` carrega o estado real pós-ação para o estágio 2 (reflexão do LLM).
 export type IntentResult =
-  | { status: 'ok'; reply?: string }
+  | { status: 'ok'; reply?: string; reflection?: { facts: string } }
   | { status: 'error'; reply: string }
 
 const OK: IntentResult = { status: 'ok' }
@@ -73,7 +75,12 @@ export async function applyIntent(
         const task = await tasksService.findOpenByTitle(title)
         if (task) {
           await tasksService.complete(task.id)
-          return { status: 'ok', reply: taskCompleted(task.title) }
+          const remaining = await tasksService.listOpenForDate()
+          return {
+            status: 'ok',
+            reply: taskCompleted(task.title),
+            reflection: { facts: formatTasksQuery(remaining) },
+          }
         }
         if (kind === 'task') {
           const open = await tasksService.listOpenForDate()
@@ -99,6 +106,13 @@ export async function applyIntent(
         }
       }
       await goalsService.complete(goal.id)
+      const activeAfter = await goalsService.listActive()
+      const goalFacts =
+        activeAfter.length === 0
+          ? 'Nenhuma meta ativa restante.'
+          : `Metas ativas restantes:\n${activeAfter
+              .map((g) => `• ${g.title}: ${g.currentValue}${g.targetValue ? `/${g.targetValue}` : ''}`)
+              .join('\n')}`
       return {
         status: 'ok',
         reply: goalCompleted(goal.title, {
@@ -106,12 +120,18 @@ export async function applyIntent(
           targetValue: goal.targetValue,
           unit: goal.unit,
         }),
+        reflection: { facts: goalFacts },
       }
     }
 
     case 'create_task': {
       const task = await tasksService.create(intent.data)
-      return { status: 'ok', reply: taskCreated(task.title, task.areaSlug) }
+      const openToday = await tasksService.listOpenForDate()
+      return {
+        status: 'ok',
+        reply: taskCreated(task.title, task.areaSlug),
+        reflection: { facts: formatTasksQuery(openToday) },
+      }
     }
 
     case 'create_project':
@@ -146,7 +166,13 @@ export async function applyIntent(
       if (intent.data.activities.length > 0 && logged === 0) {
         return { status: 'error', reply: nightlyNothingLogged() }
       }
-      return OK
+      if (logged === 0) return OK
+      const weekly = await weeklyTargetsService.getWeekProgress(getCurrentWeekStart())
+      return {
+        status: 'ok',
+        reply: checkinLogged(logged),
+        reflection: { facts: formatWeekQuery(weekly, context.weeklyScore, context.weeklyStreak) },
+      }
     }
 
     // A resposta de query é 100% determinística: montada com dados reais do

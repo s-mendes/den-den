@@ -3,7 +3,7 @@ import { Interpreter } from '../../ai/interpreter'
 import { Planner } from '../../ai/planner'
 import { buildUserContext } from '../context'
 import { applyIntent } from '../intent-handler'
-import { enrichQueryReply } from '../query-analysis'
+import { enrichQueryReply, enrichActionReply } from '../query-analysis'
 import { replyInChunks } from '../split-message'
 
 export function registerMessageCreate(client: Client, interpreter: Interpreter, planner: Planner) {
@@ -42,9 +42,11 @@ export function registerMessageCreate(client: Client, interpreter: Interpreter, 
       const result = await applyIntent(intent, message.author.id, context)
       // A reply determinística reflete o que de fato aconteceu; sem ela, vale a response do LLM
       let reply = result.reply ?? intent.response
-      // Estágio 2 para consultas: o Den Den pensa sobre os dados antes de responder
+      // Estágio 2: o Den Den pensa sobre os dados/resultado antes de responder
       if (intent.type === 'query' && result.status === 'ok' && result.reply) {
         reply = await enrichQueryReply(planner, content, result.reply, context, history)
+      } else if (result.status === 'ok' && result.reply && result.reflection) {
+        reply = await enrichActionReply(planner, content, result.reply, result.reflection.facts, context, history)
       }
       await replyInChunks(message, reply)
     } catch (err) {
