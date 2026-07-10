@@ -27,7 +27,7 @@ export async function buildUserContext(discordUserId: string, daysAhead: number 
     activeContext,
     upcoming,
     weeklyProgress,
-    calendarEvents,
+    calendarResult,
     weeklyScore,
     weeklyStreak,
   ] = await Promise.all([
@@ -41,8 +41,12 @@ export async function buildUserContext(discordUserId: string, daysAhead: number 
     weeklyScoreService.getStreak(now),
   ])
 
-  // Deriva os blocos livres dos eventos já buscados — sem segunda chamada à API
-  const freeBlocks = await googleCalendarClient.getFreeBlocks(now, 30, calendarEvents)
+  const calendarEvents = calendarResult.status === 'ok' ? calendarResult.events : []
+
+  // Deriva os blocos livres dos eventos já buscados — sem segunda chamada à API.
+  // Sem agenda confiável, não há blocos livres: dia inteiro "livre" seria mentira.
+  const freeBlocks =
+    calendarResult.status === 'ok' ? await googleCalendarClient.getFreeBlocks(now, 30, calendarEvents) : []
 
   const dayAnalysis = analyzeDayEvents(now, calendarEvents)
 
@@ -70,6 +74,7 @@ export async function buildUserContext(discordUserId: string, daysAhead: number 
       completedCount: wp.completedCount,
       notes: wp.notes,
     })),
+    calendarStatus: calendarResult.status,
     calendarEvents: calendarEvents.map((ce) => ({
       id: ce.id,
       title: ce.title,

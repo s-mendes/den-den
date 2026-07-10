@@ -142,6 +142,26 @@ describe('Interpreter.interpret', () => {
     expect(contextBlock).not.toContain('BLOCOS LIVRES')
   })
 
+  it('avisa que o calendar está indisponível no contexto quando calendarStatus é "error"', async () => {
+    const provider = makeProvider([
+      JSON.stringify({ type: 'chitchat', data: {}, response: 'oi' }),
+    ])
+    const interpreter = new Interpreter(provider)
+    const context: UserContext = {
+      discordUserId: 'u1',
+      calendarStatus: 'error',
+      calendarEvents: [],
+    }
+
+    await interpreter.interpret('o que tem na agenda hoje?', context)
+
+    const messages = vi.mocked(provider.chat).mock.calls[0][0]
+    const contextBlock = messages[1].content
+
+    expect(contextBlock).toContain('Google Calendar indisponível')
+    expect(contextBlock).toContain('DESCONHECIDA')
+  })
+
   it('interpreta relatos de check-in noturno como nightly_checkin intent', async () => {
     const raw = JSON.stringify({
       type: 'nightly_checkin',

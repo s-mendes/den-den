@@ -51,7 +51,12 @@ export class Scheduler {
     const context = await buildUserContext(this.targetUserId)
     const staleProjects = await this.findStaleProjects()
     const briefing = await this.planner.today(context, { staleProjects })
-    await this.dm(`🌅 **Bom dia!**\n\n${briefing}`)
+    // Aviso determinístico: não depende de o LLM repassar a falha do calendar
+    const calendarWarning =
+      context.calendarStatus === 'error'
+        ? '⚠️ Não consegui acessar seu Google Calendar hoje — o briefing abaixo pode estar incompleto.\n\n'
+        : ''
+    await this.dm(`🌅 **Bom dia!**\n\n${calendarWarning}${briefing}`)
   }
 
   async eventReminders() {

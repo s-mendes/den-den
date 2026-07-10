@@ -20,17 +20,19 @@ async function testConnection() {
   console.log(`\n📅 Buscando eventos de hoje: ${startOfDay.toLocaleDateString('pt-BR')}`)
 
   try {
-    const events = await googleCalendarClient.getEventsForRange(startOfDay, endOfDay)
-    
-    // Como getEventsForRange silencia erros internos e retorna array vazio caso não configurado,
-    // nós fazemos uma verificação explícita do status de configuração do singleton
-    const isConfigured = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_REFRESH_TOKEN)
-    
-    if (!isConfigured) {
+    const result = await googleCalendarClient.getEventsForRange(startOfDay, endOfDay)
+
+    if (result.status === 'not_configured') {
       console.log('\n❌ Erro: O cliente não pôde ser configurado. Verifique se todas as chaves estão no arquivo .env.')
       return
     }
 
+    if (result.status === 'error') {
+      console.log(`\n❌ Erro ao buscar eventos do Google Calendar: ${result.message}`)
+      return
+    }
+
+    const events = result.events
     console.log(`\n✅ Sucesso! Autenticado com o Google Calendar.`)
     console.log(`Encontrados ${events.length} evento(s) na agenda de hoje:\n`)
 

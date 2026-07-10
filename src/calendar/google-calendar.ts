@@ -1,5 +1,5 @@
 import { google, calendar_v3 } from 'googleapis'
-import { CalendarClient, CalendarEvent, TimeBlock } from './client'
+import { CalendarClient, CalendarEvent, CalendarFetchResult, TimeBlock } from './client'
 import { computeFreeBlocks } from './parser'
 
 export class GoogleCalendarClient implements CalendarClient {
@@ -26,9 +26,9 @@ export class GoogleCalendarClient implements CalendarClient {
     }
   }
 
-  async getEventsForRange(start: Date, end: Date): Promise<CalendarEvent[]> {
+  async getEventsForRange(start: Date, end: Date): Promise<CalendarFetchResult> {
     if (!this.isConfigured || !this.oauth2Client) {
-      return []
+      return { status: 'not_configured' }
     }
 
     try {
@@ -42,7 +42,7 @@ export class GoogleCalendarClient implements CalendarClient {
       })
 
       const items = response.data.items || []
-      return items.map((item: calendar_v3.Schema$Event) => {
+      const events = items.map((item: calendar_v3.Schema$Event) => {
         const startDateTime = item.start?.dateTime || item.start?.date
         const endDateTime = item.end?.dateTime || item.end?.date
         
@@ -60,9 +60,10 @@ export class GoogleCalendarClient implements CalendarClient {
           description: item.description || null,
         }
       })
+      return { status: 'ok', events }
     } catch (err) {
       console.error('❌ Erro ao buscar eventos do Google Calendar:', err)
-      return []
+      return { status: 'error', message: err instanceof Error ? err.message : String(err) }
     }
   }
 
@@ -82,8 +83,14 @@ export class GoogleCalendarClient implements CalendarClient {
     const endOfDay = new Date(date)
     endOfDay.setHours(22, 30, 0, 0)
 
-    // Reaproveita eventos já buscados (evita segunda chamada à API por mensagem)
-    const events = prefetchedEvents ?? (await this.getEventsForRange(startOfDay, endOfDay))
+    // Reaproveita eventos já buscados (evita segunda chamada à API por mensagem).
+    // Se a busca falhar, não finge dia inteiro livre: sem eventos confiáveis, sem blocos.
+    let events = prefetchedEvents
+    if (!events) {
+      const result = await this.getEventsForRange(startOfDay, endOfDay)
+      if (result.status !== 'ok') return []
+      events = result.events
+    }
 
     return computeFreeBlocks(events, startOfDay, endOfDay, minMinutes)
   }

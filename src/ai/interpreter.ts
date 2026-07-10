@@ -29,6 +29,7 @@ export interface UserContext {
     completedCount: number
     notes?: string | null
   }>
+  calendarStatus?: 'ok' | 'not_configured' | 'error'
   calendarEvents?: Array<{
     id: string
     title: string
@@ -148,7 +149,17 @@ export class Interpreter {
       }
     }
 
-    if (ctx.calendarEvents?.length) {
+    if (ctx.calendarStatus === 'error') {
+      lines.push('\n-- AGENDA DE HOJE --')
+      lines.push(
+        '⚠️ Google Calendar indisponível (erro de integração). A agenda de hoje é DESCONHECIDA — avise o usuário e NÃO assuma que o dia está livre.'
+      )
+    } else if (ctx.calendarStatus === 'not_configured') {
+      lines.push('\n-- AGENDA DE HOJE --')
+      lines.push(
+        '⚠️ Google Calendar não configurado. A agenda de hoje é DESCONHECIDA — não assuma que o dia está livre.'
+      )
+    } else if (ctx.calendarEvents?.length) {
       lines.push('\n-- AGENDA DE HOJE (Google Calendar) --')
       for (const ce of ctx.calendarEvents) {
         const allDayStr = ce.isAllDay

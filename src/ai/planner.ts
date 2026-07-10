@@ -77,7 +77,15 @@ export class Planner {
         lines.push(`Sonhos: ${p.longTermGoals.join('; ')}`)
     }
 
-    if (ctx.calendarEvents?.length) {
+    if (ctx.calendarStatus === 'error') {
+      lines.push(
+        '\nAGENDA DO DIA: ⚠️ Google Calendar indisponível (erro de integração). A agenda de hoje é DESCONHECIDA — avise o usuário e NÃO trate o dia como livre.'
+      )
+    } else if (ctx.calendarStatus === 'not_configured') {
+      lines.push(
+        '\nAGENDA DO DIA: ⚠️ Google Calendar não configurado. A agenda de hoje é DESCONHECIDA — não trate o dia como livre.'
+      )
+    } else if (ctx.calendarEvents?.length) {
       lines.push('\nAGENDA DO DIA (Google Calendar):')
       for (const ce of ctx.calendarEvents) {
         const allDayStr = ce.isAllDay
